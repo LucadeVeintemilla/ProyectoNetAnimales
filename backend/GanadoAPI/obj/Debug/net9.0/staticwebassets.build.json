@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "WgPA7SOpKPMxVdO/cZwaBephjLdNf1y3N2rORx7ZwOo=",
+  "Source": "GanadoAPI",
+  "BasePath": "_content/GanadoAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

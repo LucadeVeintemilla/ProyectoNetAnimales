@@ -1,0 +1,343 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  CircularProgress,
+  Card,
+  CardContent,
+  Divider,
+  Button,
+  Grid,
+  Tooltip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  Slider,
+  Chip,
+  Alert,
+} from '@mui/material';
+import {
+  AccountTree as FamilyIcon,
+  Female as FemaleIcon,
+  Male as MaleIcon,
+  Help as UnknownIcon,
+  Info as InfoIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  ZoomOutMap as ZoomOutMapIcon,
+} from '@mui/icons-material';
+import { useSnackbar } from 'notistack';
+import { Tree, TreeNode } from 'react-organizational-chart';
+import animalService from '../../../services/animalService';
+
+interface AnimalNodo {
+  id: number;
+  nombre: string;
+  numeroIdentificacion: string;
+  sexo: 'M' | 'H' | 'Desconocido';
+  razaNombre?: string;
+  fechaNacimiento?: string;
+  padre?: AnimalNodo | null;
+  madre?: AnimalNodo | null;
+  hijos?: AnimalNodo[];
+}
+
+interface ArbolGenealogicoTabProps {
+  animalId: number;
+}
+
+const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [arbol, setArbol] = useState<AnimalNodo | null>(null);
+  const [niveles, setNiveles] = useState<number>(3);
+  const [zoom, setZoom] = useState<number>(100);
+  const [consanguinidad, setConsanguinidad] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [selectedAnimal, setSelectedAnimal] = useState<AnimalNodo | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
+
+  // Cargar árbol genealógico
+  useEffect(() => {
+    const cargarArbol = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await animalService.getArbolGenealogico(animalId, niveles);
+        setArbol(data);
+        
+        // Calcular coeficiente de consanguinidad
+        try {
+          const coef = await animalService.getCoeficienteConsanguinidad(animalId);
+          setConsanguinidad(coef);
+        } catch (error) {
+          console.error('Error al cargar coeficiente de consanguinidad:', error);
+          // No mostramos error al usuario si falla este cálculo
+        }
+      } catch (err) {
+        console.error('Error al cargar el árbol genealógico:', err);
+        setError('No se pudo cargar el árbol genealógico. Intente nuevamente.');
+        enqueueSnackbar('Error al cargar el árbol genealógico', { variant: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (animalId) {
+      cargarArbol();
+    }
+  }, [animalId, niveles]);
+
+  // Renderizar un nodo del árbol
+  const renderNodo = (nodo: AnimalNodo) => {
+    const esMacho = nodo.sexo === 'M';
+    const esHembra = nodo.sexo === 'H';
+    const esActual = nodo.id === animalId;
+
+    return (
+      <Box
+        sx={{
+          p: 1,
+          m: '0 auto',
+          textAlign: 'center',
+          border: `2px solid ${esActual ? '#1976d2' : '#e0e0e0'}`,
+          borderRadius: 2,
+          bgcolor: esActual ? '#f0f7ff' : 'background.paper',
+          minWidth: 140,
+          cursor: 'pointer',
+          '&:hover': {
+            boxShadow: 2,
+          },
+        }}
+        onClick={() => setSelectedAnimal(nodo)}
+      >
+        <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
+          {esMacho && <MaleIcon color="primary" sx={{ mr: 0.5 }} />}
+          {esHembra && <FemaleIcon color="secondary" sx={{ mr: 0.5 }} />}
+          {!esMacho && !esHembra && <UnknownIcon color="action" sx={{ mr: 0.5 }} />}
+          <Typography variant="subtitle2" fontWeight="bold">
+            {nodo.nombre || 'Sin nombre'}
+          </Typography>
+        </Box>
+        <Typography variant="caption" display="block">
+          #{nodo.numeroIdentificacion}
+        </Typography>
+        {nodo.razaNombre && (
+          <Chip
+            label={nodo.razaNombre}
+            size="small"
+            sx={{ mt: 0.5, height: 20, fontSize: '0.6rem' }}
+          />
+        )}
+      </Box>
+    );
+  };
+
+  // Renderizar el árbol de forma recursiva
+  const renderArbol = (nodo: AnimalNodo): React.ReactNode => {
+    return (
+      <TreeNode key={nodo.id} label={renderNodo(nodo)}>
+        {nodo.padre && renderArbol(nodo.padre)}
+        {nodo.madre && renderArbol(nodo.madre)}
+      </TreeNode>
+    );
+  };
+
+  // Manejadores de zoom
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 20, 200));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 20, 50));
+  const handleZoomReset = () => setZoom(100);
+
+  // Manejador de cambio de niveles
+  const handleNivelesChange = (event: Event, newValue: number | number[]) => {
+    setNiveles(newValue as number);
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Controles */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Árbol Genealógico
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ width: 200 }}>
+              <Typography id="niveles-slider" gutterBottom>
+                Niveles: {niveles}
+              </Typography>
+              <Slider
+                value={niveles}
+                onChange={handleNivelesChange}
+                aria-labelledby="niveles-slider"
+                valueLabelDisplay="auto"
+                step={1}
+                marks
+                min={1}
+                max={5}
+                sx={{ mt: 2 }}
+              />
+            </Box>
+          </Box>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Acercar">
+            <IconButton onClick={handleZoomIn} size="small">
+              <ZoomInIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Alejar">
+            <IconButton onClick={handleZoomOut} size="small">
+              <ZoomOutIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Restablecer zoom">
+            <IconButton onClick={handleZoomReset} size="small">
+              <ZoomOutMapIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+
+      {/* Coeficiente de consanguinidad */}
+      {consanguinidad !== null && (
+        <Alert 
+          severity={consanguinidad > 0.1 ? 'warning' : 'info'}
+          sx={{ mb: 3, alignItems: 'center' }}
+          icon={<InfoIcon fontSize="inherit" />}
+        >
+          <Box>
+            <Typography variant="subtitle2">
+              Coeficiente de consanguinidad: {(consanguinidad * 100).toFixed(2)}%
+            </Typography>
+            <Typography variant="caption" display="block">
+              {consanguinidad > 0.1 
+                ? '¡Atención! Este valor sugiere consanguinidad significativa.'
+                : 'Este valor indica una consanguinidad dentro de los parámetros normales.'}
+            </Typography>
+          </Box>
+        </Alert>
+      )}
+
+      {/* Árbol genealógico */}
+      <Paper 
+        variant="outlined" 
+        sx={{ 
+          p: 3, 
+          overflow: 'auto',
+          maxWidth: '100%',
+          '& > div': { 
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top center',
+            transition: 'transform 0.2s',
+            minHeight: 300,
+            display: 'flex',
+            justifyContent: 'center',
+          },
+        }}
+      >
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Box textAlign="center" p={4}>
+            <Typography color="error">{error}</Typography>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => window.location.reload()}
+              sx={{ mt: 2 }}
+            >
+              Reintentar
+            </Button>
+          </Box>
+        ) : arbol ? (
+          <Tree
+            lineWidth="2px"
+            lineColor="#bdbdbd"
+            lineBorderRadius="10px"
+            label={renderNodo(arbol)}
+          >
+            {arbol.padre && renderArbol(arbol.padre)}
+            {arbol.madre && renderArbol(arbol.madre)}
+          </Tree>
+        ) : (
+          <Box textAlign="center" p={4}>
+            <Typography>No se encontró información genealógica para este animal.</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Diálogo de detalles del animal */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedAnimal && (
+          <>
+            <DialogTitle>
+              {selectedAnimal.nombre || 'Animal sin nombre'}
+              <Typography variant="subtitle2" color="text.secondary">
+                #{selectedAnimal.numeroIdentificacion}
+              </Typography>
+            </DialogTitle>
+            <DialogContent>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Sexo:</Typography>
+                  <Typography gutterBottom>
+                    {selectedAnimal.sexo === 'M' ? 'Macho' : 
+                     selectedAnimal.sexo === 'H' ? 'Hembra' : 'Desconocido'}
+                  </Typography>
+                </Grid>
+                {selectedAnimal.fechaNacimiento && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Fecha de Nacimiento:</Typography>
+                    <Typography gutterBottom>
+                      {new Date(selectedAnimal.fechaNacimiento).toLocaleDateString()}
+                    </Typography>
+                  </Grid>
+                )}
+                {selectedAnimal.razaNombre && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2">Raza:</Typography>
+                    <Typography gutterBottom>{selectedAnimal.razaNombre}</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDialogOpen(false)}>Cerrar</Button>
+              <Button 
+                variant="contained" 
+                onClick={() => {
+                  setDialogOpen(false);
+                  // Aquí podrías navegar a la página de detalles del animal
+                  // navigate(`/animales/${selectedAnimal.id}`);
+                }}
+              >
+                Ver detalles completos
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ArbolGenealogicoTab;
