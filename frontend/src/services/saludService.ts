@@ -83,12 +83,10 @@ export const saludService = {
     busqueda?: string;
   }) => {
     try {
-      // Usar el endpoint getAll ya que no existe un endpoint específico para paginación y filtros
-      const response = await api.get('/ControlesSalud/proximos', { 
-        params: { 
-          dias: 3650 // Obtener controles de los últimos 10 años para asegurar que todos aparezcan
-        }
-      });
+      // Usar el nuevo endpoint que creamos para obtener TODOS los controles sin filtros
+      const response = await api.get('/ControlesSalud/todos');
+      console.log(`Total de controles recuperados: ${response.data?.length || 0}`);
+
       
       console.log('Datos recibidos del API:', response.data);
       
@@ -297,15 +295,12 @@ export const saludService = {
   // Obtener resumen de salud de un animal específico o de todos
   getResumenSalud: async (animalId?: number): Promise<ResumenSalud> => {
     try {
-      // Como el endpoint /resumen no está disponible, vamos a calcular el resumen nosotros mismos
-      // usando los datos de los próximos controles con un período amplio
-      const response = await api.get('/ControlesSalud/proximos', { 
-        params: { 
-          dias: 365 // Obtener controles del último año
-        }
-      });
+      // Usar el nuevo endpoint que devuelve TODOS los controles
+      const response = await api.get('/ControlesSalud/todos');
       
       const controles = response.data || [];
+      console.log(`Total de controles para resumen: ${controles.length}`);
+
       
       // Filtrar por animalId si se especifica
       let filteredControles = controles;

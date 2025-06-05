@@ -409,6 +409,26 @@
     ]
   },
   {
+    "ContainingType": "GanadoAPI.Controllers.ControlesSaludController",
+    "Method": "GetTodosControles",
+    "RelativePath": "api/ControlesSalud/todos",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[GanadoAPI.Controllers.ControlSaludDTO, GanadoAPI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "GanadoAPI.Controllers.GastosSaludController",
     "Method": "GetGastosSalud",
     "RelativePath": "api/GastosSalud",

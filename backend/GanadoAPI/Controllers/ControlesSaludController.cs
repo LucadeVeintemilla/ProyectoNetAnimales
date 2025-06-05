@@ -25,6 +25,39 @@ namespace GanadoAPI.Controllers
         }
 
         /// <summary>
+        /// Obtiene TODOS los controles de salud sin filtros
+        /// </summary>
+        [HttpGet("todos")]
+        public async Task<ActionResult<IEnumerable<ControlSaludDTO>>> GetTodosControles()
+        {
+            try
+            {
+                var controles = await _context.ControlesSalud
+                    .Include(c => c.Animal)
+                    .Select(c => new ControlSaludDTO
+                    {
+                        Id = c.Id,
+                        Fecha = c.Fecha,
+                        TipoControl = c.TipoControl,
+                        Diagnostico = c.Descripcion,
+                        Tratamiento = c.Medicamento,
+                        Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
+                        AnimalNombre = c.Animal.Nombre,
+                        AnimalIdentificacion = c.Animal.NumeroIdentificacion,
+                        Estado = c.Estado ?? "Pendiente"
+                    })
+                    .ToListAsync();
+
+                return Ok(controles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todos los controles de salud");
+                return StatusCode(500, new { message = "Error interno del servidor al obtener todos los controles de salud" });
+            }
+        }
+
+        /// <summary>
         /// Obtiene los controles de salud de un animal
         /// </summary>
         [HttpGet("animal/{animalId}")]
