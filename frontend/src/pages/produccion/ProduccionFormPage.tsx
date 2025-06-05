@@ -20,6 +20,8 @@ import {
   Paper,
   Alert,
   AlertTitle,
+  Chip,
+  Tooltip,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -27,16 +29,18 @@ import {
   CalendarMonth as CalendarIcon,
   LocalDining as FoodIcon,
   Info as InfoIcon,
+  Female as FemaleIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
 import { produccionService } from '../../services/produccionService';
+import { reproduccionService } from '../../services/reproduccionService';
 import type { 
   ProduccionLeche, 
   ProduccionLecheCreateDto, 
@@ -70,7 +74,8 @@ const ProduccionFormPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [animales, setAnimales] = useState<Animal[]>([]);
-
+  const [validacionInfo, setValidacionInfo] = useState<Record<number, {elegible: boolean; mensaje?: string}>>({});
+  
   const formik = useFormik<{
     id: number;
     animalId: number;
@@ -146,6 +151,21 @@ const ProduccionFormPage: React.FC = () => {
             turno: produccion.turno || 'Mañana',
             observaciones: produccion.observaciones || '',
           });
+          
+          // En modo edición, validamos el animal seleccionado
+          // Pero no impedimos la edición aunque no sea elegible actualmente
+          try {
+            const esElegible = await produccionService.esAnimalElegibleParaProduccion(produccion.animalId);
+            setValidacionInfo(prev => ({
+              ...prev,
+              [produccion.animalId]: { 
+                elegible: true, // Permitimos la edición de registros existentes aunque ya no sea elegible
+                mensaje: !esElegible ? 'Este animal ya no es elegible para nuevos registros, pero puede editar este registro existente.' : undefined 
+              }
+            }));
+          } catch (validationErr) {
+            console.error('Error al validar el animal:', validationErr);
+          }
         }
       } catch (err) {
         console.error('Error al cargar el registro de producción:', err);
@@ -163,7 +183,10 @@ const ProduccionFormPage: React.FC = () => {
     const loadAnimales = async () => {
       try {
         setLoading(true);
+        
+        // Obtenemos solo las hembras elegibles para producción
         const data = await produccionService.getAnimalesEnProduccion();
+        
         // Aseguramos que los datos tengan el formato correcto según la interfaz Animal
         const animalesFormateados = data.map((animal: any) => ({
           id: animal.id,
@@ -185,8 +208,71 @@ const ProduccionFormPage: React.FC = () => {
           enProduccion: true
         }));
         setAnimales(animalesFormateados);
+        
+        // Para cada animal, verificamos y guardamos su elegibilidad
+        const validaciones: {[key: number]: {elegible: boolean, mensaje?: string}} = {};
+        
+        // Primero verificamos que sean hembras
+        animalesFormateados.forEach(animal => {
+          if (animal.sexo !== 'H') {
+            validaciones[animal.id] = { 
+              elegible: false, 
+              mensaje: 'Solo las hembras pueden producir leche.'
+            };
+          }
+        });
+        
+        // Después verificamos la fecha de parto para cada una
+        for (const animal of animalesFormateados) {
+          if (animal.sexo === 'H' && !validaciones[animal.id]) {
+            try {
+              // Obtenemos el historial reproductivo para verificar la fecha de último parto
+              const historial = await reproduccionService.getHistorialReproductivo(animal.id);
+              
+              // Buscamos la fecha del último parto
+              let ultimoPartoFecha: Date | null = null;
+              
+              for (const evento of historial) {
+                if (evento.fechaPartoReal) {
+                  const fechaParto = new Date(evento.fechaPartoReal);
+                  if (!ultimoPartoFecha || fechaParto > ultimoPartoFecha) {
+                    ultimoPartoFecha = fechaParto;
+                  }
+                }
+              }
+              
+              // Si hay fecha de parto, verificamos que hayan pasado al menos 2 días
+              if (ultimoPartoFecha) {
+                const hoy = new Date();
+                const tiempoTranscurrido = hoy.getTime() - ultimoPartoFecha.getTime();
+                const diasTranscurridos = Math.floor(tiempoTranscurrido / (1000 * 3600 * 24));
+                
+                if (diasTranscurridos < 2) {
+                  validaciones[animal.id] = { 
+                    elegible: false, 
+                    mensaje: `Deben pasar al menos 2 días después del parto (ocurrido el ${format(ultimoPartoFecha, 'dd/MM/yyyy')}) para registrar producción.`
+                  };
+                } else {
+                  validaciones[animal.id] = { elegible: true };
+                }
+              } else {
+                validaciones[animal.id] = { elegible: true };
+              }
+            } catch (err) {
+              console.error(`Error al verificar elegibilidad del animal ${animal.id}:`, err);
+              validaciones[animal.id] = { 
+                elegible: false, 
+                mensaje: 'Error al verificar elegibilidad. Contacte al administrador.'
+              };
+            }
+          }
+        }
+        
+        setValidacionInfo(validaciones);
+        
       } catch (err) {
         console.error('Error al cargar los animales:', err);
+        setError('Error al cargar los animales. Por favor, intente nuevamente.');
       } finally {
         setLoading(false);
       }
@@ -237,7 +323,7 @@ const ProduccionFormPage: React.FC = () => {
           <form onSubmit={formik.handleSubmit}>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={formik.touched.animalId && Boolean(formik.errors.animalId)}>
+                <FormControl fullWidth error={formik.touched.animalId && (Boolean(formik.errors.animalId) || (formik.values.animalId > 0 && validacionInfo[formik.values.animalId]?.elegible === false))}>
                   <InputLabel id="animal-label">Animal</InputLabel>
                   <Select
                     labelId="animal-label"
@@ -252,16 +338,42 @@ const ProduccionFormPage: React.FC = () => {
                     <MenuItem value={0} disabled>
                       Seleccione un animal
                     </MenuItem>
-                    {animales.map((animal) => (
-                      <MenuItem key={animal.id} value={animal.id}>
-                        {animal.numeroIdentificacion} - {animal.nombre || 'Sin nombre'}
-                      </MenuItem>
-                    ))}
+                    {animales
+                      // Filtramos para mostrar solo los animales elegibles (sexo H y +2 días después del parto)
+                      .filter(animal => {
+                        if (typeof animal.id !== 'number') return false;
+                        return validacionInfo[animal.id]?.elegible === true || animal.sexo === 'H';
+                      })
+                      .map((animal) => {
+                        // Asegurar que id siempre sea un número válido para el índice
+                        const animalId = typeof animal.id === 'number' ? animal.id : -1;
+                        const isDisabled = validacionInfo[animalId]?.elegible === false;
+                        
+                        return (
+                          <MenuItem 
+                            key={animalId} 
+                            value={animalId}
+                            disabled={isDisabled}
+                          >
+                            {animal.numeroIdentificacion} - {animal.nombre || 'Sin nombre'}
+                            {isDisabled && " (No disponible)"}
+                          </MenuItem>
+                        );
+                      })}
                   </Select>
                   {formik.touched.animalId && formik.errors.animalId && (
                     <FormHelperText>{formik.errors.animalId}</FormHelperText>
                   )}
+                  {formik.touched.animalId && formik.values.animalId > 0 && validacionInfo[formik.values.animalId]?.elegible === false && (
+                    <FormHelperText error>
+                      {validacionInfo[formik.values.animalId]?.mensaje || 'Este animal no está disponible para registro de producción'}
+                    </FormHelperText>
+                  )}
                 </FormControl>
+                
+                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 1 }}>
+                  Solo se muestran hembras elegibles para producción de leche (después de 2 días del parto).
+                </Typography>
               </Grid>
 
               <Grid item xs={12} md={6}>

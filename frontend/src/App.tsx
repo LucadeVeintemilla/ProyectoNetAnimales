@@ -21,6 +21,11 @@ import ReproduccionFormPage from './pages/reproduccion/ReproduccionFormPage';
 import ReproduccionDetallePage from './pages/reproduccion/ReproduccionDetallePage';
 
 import SaludPage from './pages/salud/SaludPage';
+import SaludHistorialPage from './pages/salud/SaludHistorialPage';
+import SaludFormPage from './pages/salud/SaludFormPage';
+import SaludDashboardPage from './pages/salud/SaludDashboardPage';
+import MedicamentosPage from './pages/salud/MedicamentosPage';
+import SaludDetallesPage from './pages/salud/SaludDetallesPage';
 import ReportesPage from './pages/reportes/ReportesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -121,7 +126,15 @@ const App: React.FC = () => {
                 </Route>
                 
                 {/* Salud */}
-                <Route path="/salud" element={<SaludPage />} />
+                <Route path="/salud" element={<SaludPage />}>
+                  <Route index element={<Navigate to="/salud/historial" replace />} />
+                  <Route path="historial" element={<SaludHistorialPage />} />
+                  <Route path="nuevo" element={<SaludFormPage />} />
+                  <Route path="dashboard" element={<SaludDashboardPage />} />
+                  <Route path="medicamentos" element={<MedicamentosPage />} />
+                  <Route path=":id" element={<SaludDetallesPage />} />
+                  <Route path=":id/editar" element={<SaludFormPage />} />
+                </Route>
                 
                 {/* Reportes */}
                 <Route path="/reportes" element={<ReportesPage />} />

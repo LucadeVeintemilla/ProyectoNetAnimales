@@ -118,16 +118,85 @@ export const produccionService = {
   
   // Obtener animales en producción
   getAnimalesEnProduccion: async (): Promise<Animal[]> => {
-    // Usamos el endpoint de animales con un filtro para los que están en producción
-    const response = await api.get('/animales', {
-      params: {
-        enProduccion: true,
-        pageSize: 1000 // Un número grande para obtener todos los animales en producción
+    try {
+      // Llamamos a un endpoint específico que ya filtra por hembras que son elegibles
+      const response = await api.get('/produccionleche/animales-en-produccion');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener animales en producción:', error);
+      // Si falla, intentamos filtrar localmente
+      try {
+        // Obtenemos todas las hembras
+        const responseAll = await api.get('/animales', { params: { sexo: 'H' } });
+        const hembras = responseAll.data.items || [];
+        
+        // Filtramos manualmente las hembras elegibles (que hayan tenido parto hace más de 2 días)
+        const hembrasElegibles = [];
+        for (const hembra of hembras) {
+          if (await produccionService.esAnimalElegibleParaProduccion(hembra.id)) {
+            hembrasElegibles.push(hembra);
+          }
+        }
+        
+        return hembrasElegibles;
+      } catch (secondError) {
+        console.error('Error al filtrar hembras elegibles:', secondError);
+        return [];
       }
-    });
-    return response.data.items || [];
+    }
   },
-
+  
+  // Verifica si un animal es elegible para producción de leche:
+  // 1. Debe ser hembra
+  // 2. Si tiene parto registrado, deben haber pasado al menos 2 días desde el parto real
+  esAnimalElegibleParaProduccion: async (animalId: number): Promise<boolean> => {
+    try {
+      // Primero verificamos que sea hembra
+      const animalResponse = await api.get(`/animales/${animalId}`);
+      const animal = animalResponse.data;
+      
+      if (animal.sexo !== 'H') {
+        return false; // No es hembra, no es elegible
+      }
+      
+      // Obtenemos el historial reproductivo para verificar la fecha del último parto
+      const historialResponse = await api.get(`/reproduccion/animal/${animalId}`);
+      const historial = historialResponse.data || [];
+      
+      // Si no tiene historial reproductivo, es elegible (no ha tenido partos)
+      if (!historial.length) {
+        return true;
+      }
+      
+      // Buscamos el evento de parto más reciente
+      let ultimoPartoFecha: Date | null = null;
+      
+      for (const evento of historial) {
+        if (evento.fechaPartoReal) {
+          const fechaParto = new Date(evento.fechaPartoReal);
+          if (!ultimoPartoFecha || fechaParto > ultimoPartoFecha) {
+            ultimoPartoFecha = fechaParto;
+          }
+        }
+      }
+      
+      // Si no hay fecha de parto real registrada, es elegible
+      if (!ultimoPartoFecha) {
+        return true;
+      }
+      
+      // Verificamos que hayan pasado al menos 2 días desde el parto
+      const hoy = new Date();
+      const tiempoTranscurrido = hoy.getTime() - ultimoPartoFecha.getTime();
+      const diasTranscurridos = tiempoTranscurrido / (1000 * 3600 * 24);
+      
+      return diasTranscurridos >= 2;
+    } catch (error) {
+      console.error('Error al verificar elegibilidad del animal:', error);
+      return false; // En caso de error, asumimos que no es elegible
+    }
+  },
+  
   // Obtener resumen de producción
   getResumenProduccion: async (fechaInicio: string, fechaFin: string): Promise<ResumenProduccion> => {
     const response = await api.get('/produccionleche/resumen', {

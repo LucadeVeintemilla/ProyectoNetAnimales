@@ -11,6 +11,13 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuración para evitar que la aplicación se recicle por inactividad
+builder.WebHost.ConfigureKestrel(options => {
+    // Aumentar tiempo de inactividad a 2 horas
+    options.Limits.KeepAliveTimeout = TimeSpan.FromHours(2);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+});
+
 // Add services to the container.
 
 // Configuración de CORS
@@ -84,7 +91,21 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        // Agregar un margen de tiempo para la expiración del token
+        ClockSkew = TimeSpan.Zero
+    };
+    
+    // Configurar eventos para el token JWT
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context => Task.CompletedTask,
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError("Error de autenticación: {Error}", context.Exception.Message);
+            return Task.CompletedTask;
+        }
     };
 });
 

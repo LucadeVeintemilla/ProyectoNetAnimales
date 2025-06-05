@@ -39,5 +39,8 @@ namespace GanadoAPI.Models
         
         [StringLength(100)]
         public string? Veterinario { get; set; }
+        
+        [StringLength(50)]
+        public string? Estado { get; set; } // Completado, Pendiente, Atrasado, Cancelado
     }
 }

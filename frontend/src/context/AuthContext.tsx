@@ -38,27 +38,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (token && storedUser) {
           try {
-            // Validate the token with the backend
-            const response = await api.get('/auth/validate-token', {
-              headers: { Authorization: `Bearer ${token}` }
-            });
+            // Verificar si el token es válido (parsearlo y comprobar la fecha de expiración)
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const tokenExp = tokenPayload.exp * 1000; // Convertir a milisegundos
+            const currentTime = new Date().getTime();
             
-            if (response.status === 200) {
+            if (tokenExp > currentTime) {
+              // Token aún es válido
               const userData = JSON.parse(storedUser);
               setUser(userData);
             } else {
-              // Token is invalid, clear auth data
+              // Token expirado, limpiar datos de autenticación
+              console.log('Token expirado, cerrando sesión');
               localStorage.removeItem('user');
               localStorage.removeItem('token');
             }
           } catch (error) {
-            console.error('Error validating token:', error);
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
+            console.error('Error verificando el token:', error);
+            // No eliminar el token en caso de error para evitar cierres inesperados de sesión
+            // En su lugar, intentamos usar el usuario almacenado
+            try {
+              const userData = JSON.parse(storedUser);
+              setUser(userData);
+            } catch (e) {
+              console.error('Error parseando datos de usuario:', e);
+            }
           }
         }
       } catch (error) {
-        console.error('Error checking auth state:', error);
+        console.error('Error verificando estado de autenticación:', error);
       } finally {
         setLoading(false);
       }
@@ -66,10 +74,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     checkAuth();
     
-    // Set up a timer to check token validity periodically
-    const interval = setInterval(checkAuth, 5 * 60 * 1000); // Check every 5 minutes
-    
-    return () => clearInterval(interval);
+    // Ya no hacemos verificaciones periódicas para evitar cierres de sesión inesperados
+    // const interval = setInterval(checkAuth, 5 * 60 * 1000);
+    // return () => clearInterval(interval);
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {

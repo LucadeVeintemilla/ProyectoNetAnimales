@@ -99,7 +99,8 @@ const ReproduccionFormPage: React.FC = () => {
   const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
 
   const isEditing = Boolean(id);
-  const pageTitle = isEditing ? 'Editar Registro de Reproducción' : 'Nuevo Registro de Reproducción';
+  const pageTitle = 'Registro de Reproducción';
+  const pageSubtitle = isEditing ? 'Complete la información solicitada para modificar el evento reproductivo' : 'Complete la información solicitada para registrar el evento reproductivo';
   const steps = ['Datos de la Monta', 'Seguimiento', 'Registro de Crías'];
 
   // Inicializar formulario con valores por defecto
@@ -283,7 +284,7 @@ const ReproduccionFormPage: React.FC = () => {
           autoHideDuration: 10000
         });
       }
-    }, 30000); // Ampliamos a 30 segundos el timeout para dar más tiempo
+    }, 120000); // Ampliamos a 30 segundos el timeout para dar más tiempo
 
     const abortController = new AbortController();
     
@@ -390,7 +391,7 @@ const ReproduccionFormPage: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
         <Typography variant="h4">{pageTitle}</Typography>
         <Button
           variant="outlined"
@@ -400,6 +401,9 @@ const ReproduccionFormPage: React.FC = () => {
           Volver al listado
         </Button>
       </Box>
+      <Typography variant="subtitle1" color="textSecondary" mb={3}>
+        {pageSubtitle}
+      </Typography>
 
       <Card>
         <CardHeader 

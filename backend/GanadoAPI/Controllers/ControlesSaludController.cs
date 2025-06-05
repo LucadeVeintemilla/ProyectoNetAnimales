@@ -56,7 +56,8 @@ namespace GanadoAPI.Controllers
                         Tratamiento = c.Medicamento,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
-                        AnimalIdentificacion = c.Animal.NumeroIdentificacion
+                        AnimalIdentificacion = c.Animal.NumeroIdentificacion,
+                        Estado = c.Estado ?? "Pendiente"
                     })
                     .ToListAsync();
 
@@ -93,7 +94,8 @@ namespace GanadoAPI.Controllers
                         Tratamiento = c.Medicamento,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
-                        AnimalIdentificacion = c.Animal.NumeroIdentificacion
+                        AnimalIdentificacion = c.Animal.NumeroIdentificacion,
+                        Estado = c.Estado ?? "Pendiente"
                     })
                     .ToListAsync();
 
@@ -126,7 +128,8 @@ namespace GanadoAPI.Controllers
                         Tratamiento = c.Medicamento,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
-                        AnimalIdentificacion = c.Animal.NumeroIdentificacion
+                        AnimalIdentificacion = c.Animal.NumeroIdentificacion,
+                        Estado = c.Estado ?? "Pendiente"
                     })
                     .FirstOrDefaultAsync();
 
@@ -176,7 +179,8 @@ namespace GanadoAPI.Controllers
                     Dosis = controlDto.Costo.ToString(),
                     ProximoControl = controlDto.ProximoControl,
                     Observaciones = controlDto.Observaciones,
-                    Veterinario = controlDto.Veterinario
+                    Veterinario = controlDto.Veterinario,
+                    Estado = controlDto.Estado ?? "Pendiente" // Incluir el campo Estado con un valor por defecto
                 };
 
                 _context.ControlesSalud.Add(control);
@@ -230,6 +234,7 @@ namespace GanadoAPI.Controllers
                 control.ProximoControl = controlDto.ProximoControl;
                 control.Observaciones = controlDto.Observaciones;
                 control.Veterinario = controlDto.Veterinario;
+                control.Estado = controlDto.Estado ?? control.Estado ?? "Pendiente"; // Mantener estado existente o usar valor por defecto
 
                 _context.Entry(control).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
@@ -295,6 +300,7 @@ namespace GanadoAPI.Controllers
         public DateTime? ProximoControl { get; set; }
         public string? Observaciones { get; set; }
         public string? Veterinario { get; set; }
+        public string? Estado { get; set; }
     }
 
     public class ControlSaludDTO : ControlSaludCreacionDTO

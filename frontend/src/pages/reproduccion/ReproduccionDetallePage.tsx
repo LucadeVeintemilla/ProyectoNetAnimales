@@ -312,7 +312,7 @@ const ReproduccionDetallePage: React.FC = () => {
           variant="contained"
           color="primary"
           startIcon={<Edit />}
-          onClick={() => navigate(`/reproduccion/editar/${id}`)}
+          onClick={() => navigate(`/reproduccion/${id}/editar`)}
         >
           Editar
         </Button>
