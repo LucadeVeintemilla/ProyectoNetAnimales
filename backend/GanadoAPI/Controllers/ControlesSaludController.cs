@@ -211,8 +211,9 @@ namespace GanadoAPI.Controllers
                     AnimalId = controlDto.AnimalId,
                     Fecha = controlDto.Fecha,
                     TipoControl = controlDto.TipoControl,
-                    Descripcion = controlDto.Diagnostico,
-                    Medicamento = controlDto.Tratamiento,
+                    Descripcion = controlDto.Descripcion,
+                    Diagnostico = controlDto.Diagnostico,
+                    Medicamento = "",
                     Dosis = controlDto.Costo.ToString(),
                     ProximoControl = controlDto.ProximoControl,
                     Observaciones = controlDto.Observaciones,
@@ -331,6 +332,7 @@ namespace GanadoAPI.Controllers
         public int AnimalId { get; set; }
         public DateTime Fecha { get; set; }
         public string TipoControl { get; set; } = null!;
+        public string? Descripcion { get; set; }
         public string? Diagnostico { get; set; }
         public string? Tratamiento { get; set; }
         public decimal Costo { get; set; }

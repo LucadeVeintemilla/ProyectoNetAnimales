@@ -223,8 +223,9 @@ export const saludService = {
         AnimalId: control.animalId,
         Fecha: control.fecha,
         TipoControl: control.tipo, // El backend espera TipoControl, no tipo
-        Diagnostico: control.descripcion, // El backend usa Diagnostico como descripcion
-        Tratamiento: control.diagnostico || '', // Usar diagnostico como Tratamiento
+        Descripcion: control.descripcion || '', // El campo descripcion se guarda en Descripcion de la BD
+        Diagnostico: control.diagnostico || '', // El campo diagnostico se guarda en Diagnostico de la BD
+        Tratamiento: '', // No enviamos nada al campo Medicamento de la BD
         Costo: 0, // Valor por defecto
         ProximoControl: control.fechaProximoControl,
         Observaciones: control.observaciones || '',
@@ -263,8 +264,9 @@ export const saludService = {
         AnimalId: control.animalId,
         Fecha: control.fecha,
         TipoControl: control.tipo,
-        Diagnostico: control.descripcion,
-        Tratamiento: control.diagnostico || '',
+        Descripcion: control.descripcion || '', // El campo descripcion se guarda en Descripcion de la BD
+        Diagnostico: control.diagnostico || '', // El campo diagnostico se guarda en Diagnostico de la BD
+        Tratamiento: '', // No enviamos nada al campo Medicamento de la BD
         Costo: 0,
         ProximoControl: control.fechaProximoControl,
         Observaciones: control.observaciones || '',

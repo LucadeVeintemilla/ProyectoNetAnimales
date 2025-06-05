@@ -21,6 +21,8 @@ namespace GanadoAPI.DTOs
         [Required]
         public string TipoControl { get; set; } = null!;
         [Required]
+        public string Descripcion { get; set; } = null!;
+        [Required]
         public string Diagnostico { get; set; } = null!;
         [Required]
         public string Tratamiento { get; set; } = null!;
