@@ -155,6 +155,7 @@ namespace GanadoAPI.Controllers
                     .Select(c => new ControlSaludDTO
                     {
                         Id = c.Id,
+                        AnimalId = c.AnimalId,
                         Fecha = c.Fecha,
                         TipoControl = c.TipoControl,
                         Diagnostico = c.Descripcion,
@@ -162,7 +163,10 @@ namespace GanadoAPI.Controllers
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
                         AnimalIdentificacion = c.Animal.NumeroIdentificacion,
-                        Estado = c.Estado ?? "Pendiente"
+                        Estado = c.Estado ?? "Pendiente",
+                        ProximoControl = c.ProximoControl,
+                        Observaciones = c.Observaciones,
+                        Veterinario = c.Veterinario
                     })
                     .FirstOrDefaultAsync();
 
