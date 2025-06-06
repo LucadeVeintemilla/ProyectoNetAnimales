@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GanadoAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a583613142a8dde20b119a86269c999ada957b33")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+42b7fa465863c33174baad71f28670c8dad7546d")]
 [assembly: System.Reflection.AssemblyProductAttribute("GanadoAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GanadoAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

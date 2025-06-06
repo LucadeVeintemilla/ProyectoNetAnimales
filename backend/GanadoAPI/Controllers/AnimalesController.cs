@@ -147,6 +147,9 @@ namespace GanadoAPI.Controllers
                         Estado = a.Estado,
                         RazaId = a.RazaId,
                         RazaNombre = a.Raza != null ? a.Raza.Nombre : "Sin especificar",
+                        PadreId = a.PadreId,
+                        MadreId = a.MadreId,
+                        Observaciones = a.Observaciones,
                         Activo = a.Activo // Include the Activo status in the response
                     })
                     .FirstOrDefaultAsync();
