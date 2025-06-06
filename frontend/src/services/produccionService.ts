@@ -23,7 +23,9 @@ export interface ProduccionLecheCreateDto extends Omit<ProduccionLeche, 'id' | '
   fecha: string;
 }
 
-export interface ProduccionLecheUpdateDto extends Partial<ProduccionLecheCreateDto> {}
+export interface ProduccionLecheUpdateDto extends Partial<ProduccionLecheCreateDto> {
+  id?: number;
+}
 
 export interface ResumenProduccion {
   fechaInicio: string;

@@ -139,7 +139,8 @@ const ProduccionPage: React.FC = () => {
   };
 
   const handleEdit = (id: number) => {
-    navigate(`/produccion/editar/${id}`);
+    navigate(`/produccion/${id}/editar`);
+    console.log('Redirigiendo a', `/produccion/${id}/editar`);
     handleMenuClose();
   };
 
@@ -391,7 +392,7 @@ const ProduccionPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Ver Detalles</ListItemText>
         </MenuItem>
-        {canEdit && (
+        {(
           <MenuItem onClick={() => selectedId && handleEdit(selectedId)}>
             <ListItemIcon>
               <EditIcon fontSize="small" />
@@ -399,7 +400,7 @@ const ProduccionPage: React.FC = () => {
             <ListItemText>Editar</ListItemText>
           </MenuItem>
         )}
-        {canDelete && (
+        {(
           <MenuItem onClick={() => selectedId && handleDelete(selectedId)}>
             <ListItemIcon>
               <DeleteIcon fontSize="small" color="error" />

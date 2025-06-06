@@ -99,21 +99,28 @@ const ProduccionFormPage: React.FC = () => {
         setError(null);
         setSuccess(null);
 
-        const produccionData: ProduccionLecheCreateDto = {
-          animalId: values.animalId,
-          fecha: values.fecha.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
-          cantidadLitros: values.cantidadLitros,
-          turno: values.turno,
-          observaciones: values.observaciones,
-        };
-
         if (id) {
           // Actualizar registro existente
-          await produccionService.update(parseInt(id), produccionData as ProduccionLecheUpdateDto);
+          const produccionUpdateData: ProduccionLecheUpdateDto = {
+            id: parseInt(id), // Incluir el ID para que coincida con el parámetro de la URL
+            animalId: values.animalId,
+            fecha: values.fecha.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
+            cantidadLitros: values.cantidadLitros,
+            turno: values.turno,
+            observaciones: values.observaciones,
+          };
+          await produccionService.update(parseInt(id), produccionUpdateData);
           setSuccess('Registro de producción actualizado correctamente');
         } else {
           // Crear nuevo registro
-          await produccionService.create(produccionData);
+          const produccionCreateData: ProduccionLecheCreateDto = {
+            animalId: values.animalId,
+            fecha: values.fecha.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
+            cantidadLitros: values.cantidadLitros,
+            turno: values.turno,
+            observaciones: values.observaciones,
+          };
+          await produccionService.create(produccionCreateData);
           setSuccess('Registro de producción creado correctamente');
           formik.resetForm();
         }

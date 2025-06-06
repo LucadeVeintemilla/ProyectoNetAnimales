@@ -431,7 +431,7 @@ const ReproduccionPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText>Ver Detalles</ListItemText>
         </MenuItem>
-        {canEdit && (
+        {(
           <MenuItem onClick={() => selectedId && handleEdit(selectedId)}>
             <ListItemIcon>
               <EditIcon fontSize="small" />
