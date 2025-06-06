@@ -22,6 +22,7 @@ import {
   Divider,
   Chip,
   Badge,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,107 +37,85 @@ import {
   Pending as PendingIcon,
   Edit as EditIcon,
   Visibility as VisibilityIcon,
+  Refresh as RefreshIcon,
+  MedicalServices,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, subDays, startOfMonth, endOfMonth, isAfter, isBefore } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import saludService, { ControlSalud } from '../../../services/saludService';
 
-interface ControlSalud {
-  id: number;
-  fecha: string;
-  tipo: string;
-  descripcion: string;
-  diagnostico: string;
-  tratamiento: string;
-  proximoControl?: string;
-  estado: 'completado' | 'pendiente' | 'atrasado';
-  medico: string;
-  observaciones?: string;
-}
+// Usamos la interfaz ControlSalud importada desde saludService
 
 interface SaludTabProps {
   animalId: number;
 }
 
 const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
-  // Datos de ejemplo (en una aplicación real, estos vendrían de una API)
-  const controlesEjemplo: ControlSalud[] = [
-    {
-      id: 1,
-      fecha: '2023-05-15T10:30:00',
-      tipo: 'Vacunación',
-      descripcion: 'Vacuna contra la fiebre aftosa',
-      diagnostico: 'Prevención',
-      tratamiento: 'Vacuna Fiebre Aftosa - 5ml',
-      proximoControl: '2023-11-15T10:30:00',
-      estado: 'completado',
-      medico: 'Dr. Juan Pérez',
-    },
-    {
-      id: 2,
-      fecha: '2023-06-01T14:00:00',
-      tipo: 'Control General',
-      descripcion: 'Revisión de rutina',
-      diagnostico: 'Buen estado de salud',
-      tratamiento: 'Desparasitación - Ivermectina 3.15% (1ml/50kg)',
-      proximoControl: '2023-09-01T14:00:00',
-      estado: 'completado',
-      medico: 'Dra. Ana Gómez',
-    },
-    {
-      id: 3,
-      fecha: '2023-07-10T11:15:00',
-      tipo: 'Tratamiento',
-      descripcion: 'Infección en pezuña',
-      diagnostico: 'Dermatitis interdigital',
-      tratamiento: 'Limpieza y aplicación de pomada antibiótica',
-      proximoControl: '2023-07-17T11:15:00',
-      estado: 'pendiente',
-      medico: 'Dr. Carlos Ruiz',
-      observaciones: 'Mantener limpia y seca la zona afectada',
-    },
-  ];
-
+  // Estados para manejar los datos y filtros
   const [controles, setControles] = useState<ControlSalud[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [fechaInicio, setFechaInicio] = useState<Date>(startOfMonth(new Date()));
-  const [fechaFin, setFechaFin] = useState<Date>(new Date());
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(startOfMonth(new Date()));
+  const [fechaFin, setFechaFin] = useState<Date | null>(new Date());
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   
-  // Cargar controles de salud del animal
+  // Cargar controles de salud del animal desde la API
   const fetchControles = async () => {
     try {
       setLoading(true);
-      // Simular carga de datos
-      await new Promise(resolve => setTimeout(resolve, 800));
+      setError(null);
+
+      // Usar el servicio en lugar de axios directo
+      let controlesData = await saludService.getByAnimalId(animalId);
       
-      // Filtrar controles por fechas (en una app real, esto se haría en el backend)
-      const controlesFiltrados = controlesEjemplo.filter(control => {
-        const fechaControl = new Date(control.fecha);
-        return (
-          (fechaInicio ? isAfter(fechaControl, subDays(fechaInicio, 1)) : true) &&
-          (fechaFin ? isBefore(fechaControl, new Date(fechaFin.getTime() + 24 * 60 * 60 * 1000)) : true) &&
-          (filtroTipo !== 'todos' ? control.tipo === filtroTipo : true) &&
-          (filtroEstado !== 'todos' ? control.estado === filtroEstado : true)
+      // Aplicar filtros adicionales en el cliente si es necesario
+      if (filtroTipo !== 'todos') {
+        controlesData = controlesData.filter((control: ControlSalud) => 
+          control.tipo === filtroTipo
         );
-      });
+      }
       
-      setControles(controlesFiltrados);
+      if (filtroEstado !== 'todos') {
+        controlesData = controlesData.filter((control: ControlSalud) => 
+          control.estado.toLowerCase() === filtroEstado
+        );
+      }
+      
+      if (searchTerm) {
+        controlesData = controlesData.filter((control: ControlSalud) => 
+          control.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          control.diagnostico?.toLowerCase().includes(searchTerm.toLowerCase()) || false
+        );
+      }
+      
+      setControles(controlesData);
     } catch (error) {
       console.error('Error al cargar los controles de salud:', error);
+      setError('Error al cargar los controles de salud. Por favor, intente de nuevo.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Cargar datos cuando cambien los filtros
   useEffect(() => {
     fetchControles();
-  }, [fechaInicio, fechaFin, filtroTipo, filtroEstado]);
+  }, [animalId, fechaInicio, fechaFin]);
+  
+  // Aplicar filtros cliente cuando cambian
+  useEffect(() => {
+    // Solo aplicar filtros adicionales sin llamar a la API
+    if (!loading && controles.length > 0) {
+      fetchControles();
+    }
+  }, [filtroTipo, filtroEstado, searchTerm]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -147,8 +126,9 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
     setPage(0);
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
+  const getEstadoColor = (estado: string | undefined) => {
+    if (!estado) return 'default';
+    switch (estado.toLowerCase()) {
       case 'completado':
         return 'success';
       case 'pendiente':
@@ -173,8 +153,10 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
     }
   };
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
+  const getTipoIcon = (tipo: string | undefined) => {
+    if (!tipo) return <MedicalServices color="action" />; // Valor por defecto si tipo es undefined
+    const tipoLower = tipo.toLowerCase();
+    switch (tipoLower) {
       case 'vacunación':
         return <VaccineIcon color="primary" />;
       case 'tratamiento':
@@ -186,10 +168,10 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
 
   // Contar controles por estado para el resumen
   const resumenControles = {
-    total: controlesEjemplo.length,
-    completados: controlesEjemplo.filter(c => c.estado === 'completado').length,
-    pendientes: controlesEjemplo.filter(c => c.estado === 'pendiente').length,
-    atrasados: controlesEjemplo.filter(c => c.estado === 'atrasado').length,
+    total: controles.length,
+    completados: controles.filter((c: ControlSalud) => c.estado.toLowerCase() === 'completado').length,
+    pendientes: controles.filter((c: ControlSalud) => c.estado.toLowerCase() === 'pendiente').length,
+    atrasados: controles.filter((c: ControlSalud) => c.estado.toLowerCase() === 'atrasado').length,
   };
 
   return (
@@ -435,16 +417,27 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
           Próximos Controles
         </Typography>
         <Grid container spacing={2}>
-          {controlesEjemplo
-            .filter(c => c.estado === 'pendiente' || c.estado === 'atrasado')
-            .sort((a, b) => new Date(a.proximoControl || '').getTime() - new Date(b.proximoControl || '').getTime())
+          {controles
+            .filter((c: ControlSalud) => c.estado.toLowerCase() === 'pendiente' || c.estado.toLowerCase() === 'atrasado')
+            .sort((a: ControlSalud, b: ControlSalud) => {
+              // Si ambas fechas existen, comparamos normalmente
+              if (a.fechaProximoControl && b.fechaProximoControl) {
+                return new Date(a.fechaProximoControl).getTime() - new Date(b.fechaProximoControl).getTime();
+              }
+              // Si sólo a tiene fecha, debe ir primero (ordenar en orden ascendente)
+              if (a.fechaProximoControl) return -1;
+              // Si sólo b tiene fecha, debe ir primero
+              if (b.fechaProximoControl) return 1;
+              // Si ninguno tiene fecha, mantener el orden original
+              return 0;
+            })
             .slice(0, 3)
-            .map((control) => (
+            .map((control: ControlSalud) => (
               <Grid item xs={12} md={4} key={`proximo-${control.id}`}>
                 <Card 
                   variant="outlined"
                   sx={{
-                    borderLeft: `4px solid ${control.estado === 'atrasado' ? 'error.main' : 'warning.main'}`,
+                    borderLeft: `4px solid ${control.estado.toLowerCase() === 'atrasado' ? 'error.main' : 'warning.main'}`,
                     height: '100%',
                   }}
                 >
@@ -455,7 +448,9 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                           {control.tipo}
                         </Typography>
                         <Typography variant="body2" color="textSecondary" gutterBottom>
-                          {format(new Date(control.proximoControl || ''), 'PPPp', { locale: es })}
+                          {control.fechaProximoControl && control.fechaProximoControl !== '' ? 
+                            format(new Date(control.fechaProximoControl), 'PPP', { locale: es }) : 
+                            'No programado'}
                         </Typography>
                         <Chip
                           size="small"
@@ -476,7 +471,7 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                 </Card>
               </Grid>
             ))}
-          {controlesEjemplo.filter(c => c.estado === 'pendiente' || c.estado === 'atrasado').length === 0 && (
+          {controles.filter((c: ControlSalud) => c.estado.toLowerCase() === 'pendiente' || c.estado.toLowerCase() === 'atrasado').length === 0 && (
             <Grid item xs={12}>
               <Paper sx={{ p: 3, textAlign: 'center' }}>
                 <Typography color="textSecondary">
@@ -530,7 +525,7 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                   controles.map((control) => (
                     <TableRow key={control.id} hover>
                       <TableCell>
-                        {format(new Date(control.fecha), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        {control.fecha ? format(new Date(control.fecha), 'dd/MM/yyyy HH:mm', { locale: es }) : 'Sin fecha'}
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center">
@@ -539,7 +534,7 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={control.descripcion}>
+                        <Tooltip title={control.diagnostico}>
                           <Typography noWrap sx={{ maxWidth: 200 }}>
                             {control.descripcion}
                           </Typography>

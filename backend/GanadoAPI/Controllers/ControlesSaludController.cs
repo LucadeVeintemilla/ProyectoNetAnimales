@@ -97,6 +97,7 @@ namespace GanadoAPI.Controllers
             try
             {
                 var query = _context.ControlesSalud
+                    .Include(c => c.Animal)
                     .Where(c => c.AnimalId == animalId);
 
                 if (fechaInicio.HasValue)
@@ -116,8 +117,10 @@ namespace GanadoAPI.Controllers
                         Id = c.Id,
                         Fecha = c.Fecha,
                         TipoControl = c.TipoControl,
-                        Diagnostico = c.Descripcion,
+                        Descripcion = c.Descripcion,
+                        Diagnostico = c.Diagnostico,
                         Tratamiento = c.Medicamento,
+                        ProximoControl = c.ProximoControl,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
                         AnimalIdentificacion = c.Animal.NumeroIdentificacion,
