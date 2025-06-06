@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -40,6 +41,33 @@ import { useSnackbar } from 'notistack';
 import { Tree, TreeNode } from 'react-organizational-chart';
 import animalService from '../../../services/animalService';
 
+// Interfaces para manejar la respuesta del backend
+interface AnimalDTO {
+  id: number;
+  numeroIdentificacion: string;
+  nombre: string;
+  fechaNacimiento: string;
+  sexo: string;
+  estado: string;
+  razaId: number;
+  razaNombre?: string;
+}
+
+interface ArbolGenealogicoNodoDTO {
+  animal: AnimalDTO;
+  nivel: number;
+  padre?: ArbolGenealogicoNodoDTO;
+  madre?: ArbolGenealogicoNodoDTO;
+}
+
+interface ArbolGenealogicoDTO {
+  animal: AnimalDTO;
+  niveles: number;
+  fechaGeneracion: string;
+  ancestros: ArbolGenealogicoNodoDTO[];
+}
+
+// Interfaz para nuestro componente visual
 interface AnimalNodo {
   id: number;
   nombre: string;
@@ -66,6 +94,63 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalNodo | null>(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
+
+  // Convertir datos del backend al formato requerido por el componente
+  const convertirAFormatoArbol = (datos: ArbolGenealogicoDTO): AnimalNodo => {
+    // Convertir el animal principal
+    const animalPrincipal: AnimalNodo = {
+      id: datos.animal.id,
+      nombre: datos.animal.nombre || 'Sin nombre',
+      numeroIdentificacion: datos.animal.numeroIdentificacion,
+      sexo: datos.animal.sexo as 'M' | 'H' | 'Desconocido',
+      razaNombre: datos.animal.razaNombre,
+      fechaNacimiento: datos.animal.fechaNacimiento,
+      padre: null,
+      madre: null,
+      hijos: []
+    };
+
+    // Convertir ancestros (padres y madres) si existen
+    datos.ancestros?.forEach(ancestro => {
+      if (ancestro.animal) {
+        const nodoAncestro = convertirNodo(ancestro);
+        if (ancestro.animal.sexo === 'M') {
+          animalPrincipal.padre = nodoAncestro;
+        } else if (ancestro.animal.sexo === 'H') {
+          animalPrincipal.madre = nodoAncestro;
+        }
+      }
+    });
+
+    console.log('Árbol convertido:', animalPrincipal);
+    return animalPrincipal;
+  };
+
+  // Convertir recursivamente nodos del árbol
+  const convertirNodo = (nodo: ArbolGenealogicoNodoDTO): AnimalNodo => {
+    const resultado: AnimalNodo = {
+      id: nodo.animal.id,
+      nombre: nodo.animal.nombre || 'Sin nombre',
+      numeroIdentificacion: nodo.animal.numeroIdentificacion,
+      sexo: nodo.animal.sexo as 'M' | 'H' | 'Desconocido',
+      razaNombre: nodo.animal.razaNombre,
+      fechaNacimiento: nodo.animal.fechaNacimiento,
+      padre: null,
+      madre: null
+    };
+
+    // Convertir recursivamente padre y madre
+    if (nodo.padre) {
+      resultado.padre = convertirNodo(nodo.padre);
+    }
+
+    if (nodo.madre) {
+      resultado.madre = convertirNodo(nodo.madre);
+    }
+
+    return resultado;
+  };
 
   // Cargar árbol genealógico
   useEffect(() => {
@@ -74,15 +159,31 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
         setLoading(true);
         setError(null);
         const data = await animalService.getArbolGenealogico(animalId, niveles);
-        setArbol(data);
+        console.log('Datos recibidos del API:', data);
+        
+        if (data && data.animal) {
+          const arbolConvertido = convertirAFormatoArbol(data);
+          setArbol(arbolConvertido);
+        } else {
+          setError('Formato de datos no válido');
+          console.error('Formato de datos no válido:', data);
+        }
         
         // Calcular coeficiente de consanguinidad
         try {
-          const coef = await animalService.getCoeficienteConsanguinidad(animalId);
-          setConsanguinidad(coef);
+          const coeficiente = await animalService.getCoeficienteConsanguinidad(animalId);
+          console.log('Coeficiente recibido:', coeficiente);
+          
+          // Verificar si es un número válido
+          if (coeficiente !== undefined && coeficiente !== null && !isNaN(coeficiente)) {
+            setConsanguinidad(Number(coeficiente));
+          } else {
+            console.warn('Coeficiente de consanguinidad inválido:', coeficiente);
+            setConsanguinidad(null);
+          }
         } catch (error) {
           console.error('Error al cargar coeficiente de consanguinidad:', error);
-          // No mostramos error al usuario si falla este cálculo
+          setConsanguinidad(null);
         }
       } catch (err) {
         console.error('Error al cargar el árbol genealógico:', err);
@@ -96,7 +197,7 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
     if (animalId) {
       cargarArbol();
     }
-  }, [animalId, niveles]);
+  }, [animalId, niveles, enqueueSnackbar]);
 
   // Renderizar un nodo del árbol
   const renderNodo = (nodo: AnimalNodo) => {
@@ -119,7 +220,10 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
             boxShadow: 2,
           },
         }}
-        onClick={() => setSelectedAnimal(nodo)}
+        onClick={() => {
+          setSelectedAnimal(nodo);
+          setDialogOpen(true);
+        }}
       >
         <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
           {esMacho && <MaleIcon color="primary" sx={{ mr: 0.5 }} />}
@@ -147,8 +251,18 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
   const renderArbol = (nodo: AnimalNodo): React.ReactNode => {
     return (
       <TreeNode key={nodo.id} label={renderNodo(nodo)}>
-        {nodo.padre && renderArbol(nodo.padre)}
-        {nodo.madre && renderArbol(nodo.madre)}
+        {nodo.padre && (
+          <TreeNode key={`padre-${nodo.padre.id}`} label={renderNodo(nodo.padre)}>
+            {nodo.padre.padre && renderArbol(nodo.padre.padre)}
+            {nodo.padre.madre && renderArbol(nodo.padre.madre)}
+          </TreeNode>
+        )}
+        {nodo.madre && (
+          <TreeNode key={`madre-${nodo.madre.id}`} label={renderNodo(nodo.madre)}>
+            {nodo.madre.padre && renderArbol(nodo.madre.padre)}
+            {nodo.madre.madre && renderArbol(nodo.madre.madre)}
+          </TreeNode>
+        )}
       </TreeNode>
     );
   };
@@ -211,7 +325,7 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
       </Box>
 
       {/* Coeficiente de consanguinidad */}
-      {consanguinidad !== null && (
+      {consanguinidad !== null && !isNaN(consanguinidad) && (
         <Alert 
           severity={consanguinidad > 0.1 ? 'warning' : 'info'}
           sx={{ mb: 3, alignItems: 'center' }}
@@ -219,7 +333,7 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
         >
           <Box>
             <Typography variant="subtitle2">
-              Coeficiente de consanguinidad: {(consanguinidad * 100).toFixed(2)}%
+              Coeficiente de consanguinidad: {consanguinidad.toFixed(2)}%
             </Typography>
             <Typography variant="caption" display="block">
               {consanguinidad > 0.1 
@@ -326,8 +440,7 @@ const ArbolGenealogicoTab: React.FC<ArbolGenealogicoTabProps> = ({ animalId }) =
                 variant="contained" 
                 onClick={() => {
                   setDialogOpen(false);
-                  // Aquí podrías navegar a la página de detalles del animal
-                  // navigate(`/animales/${selectedAnimal.id}`);
+                  navigate(`/animales/${selectedAnimal.id}`);
                 }}
               >
                 Ver detalles completos

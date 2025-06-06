@@ -121,16 +121,35 @@ export const animalService = {
 
   // Obtener el árbol genealógico
   getArbolGenealogico: async (id: number, niveles: number = 3) => {
-    const response = await api.get(`/trazabilidadgenetica/arbol-genealogico/${id}`, {
-      params: { niveles }
-    });
-    return response.data;
+    try {
+      const response = await api.get(`/trazabilidadgenetica/arbol-genealogico/${id}`, {
+        params: { niveles }
+      });
+      
+      console.log('API respuesta árbol:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener árbol genealógico:', error);
+      throw error;
+    }
   },
 
   // Obtener coeficiente de consanguinidad
   getCoeficienteConsanguinidad: async (id: number) => {
-    const response = await api.get(`/trazabilidadgenetica/coeficiente-consanguinidad/${id}`);
-    return response.data;
+    try {
+      const response = await api.get(`/trazabilidadgenetica/coeficiente-consanguinidad/${id}`);
+      console.log('API respuesta coeficiente:', response.data);
+      
+      // Si la respuesta es un objeto con la propiedad coeficienteConsanguinidad, extraer ese valor
+      if (response.data && typeof response.data === 'object' && 'coeficienteConsanguinidad' in response.data) {
+        return response.data.coeficienteConsanguinidad;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener coeficiente de consanguinidad:', error);
+      return null;
+    }
   }
 };
 

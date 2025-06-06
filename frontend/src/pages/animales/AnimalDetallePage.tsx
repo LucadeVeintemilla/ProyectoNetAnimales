@@ -34,7 +34,7 @@ import { useAuth } from '../../context/AuthContext';
 import TabPanel from '../../components/common/TabPanel';
 import ProduccionTab from '../../components/animales/tabs/ProduccionTab';
 import SaludTab from '../../components/animales/tabs/SaludTab';
-import ReproduccionTab from '../../components/animales/tabs/ReproduccionTab';
+// Reproducción tab eliminada
 import ArbolGenealogicoTab from '../../components/animales/tabs/ArbolGenealogicoTab';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -217,7 +217,6 @@ const AnimalDetallePage: React.FC = () => {
             <Tab icon={<InfoIcon />} label="Información" />
             <Tab icon={<MilkIcon />} label="Producción" />
             <Tab icon={<HealthIcon />} label="Salud" />
-            <Tab icon={<HealthIcon />} label="Reproducción" />
             <Tab icon={<FamilyIcon />} label="Árbol Genealógico" />
           </Tabs>
         </Box>
@@ -320,16 +319,8 @@ const AnimalDetallePage: React.FC = () => {
             <SaludTab animalId={parseInt(id, 10)} />
           </TabPanel>
 
-          {/* Reproduction Tab */}
-          <TabPanel value={tabValue} index={3}>
-            <ReproduccionTab 
-              animalId={parseInt(id, 10)} 
-              sexo={animal?.sexo || 'H'} 
-            />
-          </TabPanel>
-
           {/* Genealogy Tab */}
-          <TabPanel value={tabValue} index={4}>
+          <TabPanel value={tabValue} index={3}>
             <ArbolGenealogicoTab animalId={parseInt(id, 10)} />
           </TabPanel>
         </CardContent>
