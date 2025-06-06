@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -44,6 +45,7 @@ interface ProduccionTabProps {
 }
 
 const ProduccionTab: React.FC<ProduccionTabProps> = ({ animalId }) => {
+  const navigate = useNavigate();
   const [producciones, setProducciones] = useState<ProduccionLeche[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(0);
@@ -89,6 +91,32 @@ const ProduccionTab: React.FC<ProduccionTabProps> = ({ animalId }) => {
   const handleExportar = () => {
     // Implementar lógica de exportación
     console.log('Exportar datos de producción');
+  };
+
+  // Manejar la edición de un registro de producción
+  const handleEditar = (produccionId: number | undefined) => {
+    if (produccionId) {
+      navigate(`/produccion/${produccionId}/editar`);
+    }
+  };
+
+  // Manejar la eliminación de un registro de producción
+  const handleEliminar = async (produccionId: number | undefined) => {
+    if (!produccionId) return;
+    
+    if (window.confirm('¿Está seguro de que desea eliminar este registro de producción?')) {
+      try {
+        setLoading(true);
+        await produccionService.deleteProduccion(produccionId);
+        // Recargar los datos después de eliminar
+        fetchProducciones();
+      } catch (error) {
+        console.error('Error al eliminar el registro:', error);
+        alert('No se pudo eliminar el registro. Por favor, intente nuevamente.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const getTurnoTexto = (turno: string) => {
@@ -332,10 +360,10 @@ const ProduccionTab: React.FC<ProduccionTabProps> = ({ animalId }) => {
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={() => console.log('Editar', produccion.id)}>
+                      <IconButton size="small" onClick={() => handleEditar(produccion.id)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" onClick={() => console.log('Eliminar', produccion.id)}>
+                      <IconButton size="small" onClick={() => handleEliminar(produccion.id)}>
                         <DeleteIcon fontSize="small" color="error" />
                       </IconButton>
                     </TableCell>

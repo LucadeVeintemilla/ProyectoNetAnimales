@@ -217,7 +217,6 @@ const AnimalDetallePage: React.FC = () => {
             <Tab icon={<InfoIcon />} label="Información" />
             <Tab icon={<MilkIcon />} label="Producción" />
             <Tab icon={<HealthIcon />} label="Salud" />
-            <Tab icon={<ReproductionIcon />} label="Reproducción" />
             <Tab icon={<FamilyIcon />} label="Árbol Genealógico" />
           </Tabs>
         </Box>
