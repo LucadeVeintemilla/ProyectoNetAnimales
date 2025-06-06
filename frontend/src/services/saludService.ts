@@ -66,6 +66,24 @@ export interface ProximoControl {
   diasRestantes: number;
 }
 
+// Interfaces para los gráficos del dashboard
+export interface TipoControlPorMes {
+  name: string; // Nombre del mes
+  vacuna: number;
+  tratamiento: number;
+  revision: number;
+  cirugia: number;
+  otro?: number;
+}
+
+export interface EstadoPorTipo {
+  name: string; // Nombre del tipo de control
+  completado: number;
+  pendiente: number;
+  atrasado: number;
+  cancelado?: number;
+}
+
 export const saludService = {
   // Obtener todos los registros de salud
   getAll: async (): Promise<ControlSalud[]> => {
@@ -463,6 +481,72 @@ export const saludService = {
   getMedicamentosStockBajo: async (): Promise<MedicamentoInventario[]> => {
     const response = await api.get('/medicamentos/stock-bajo');
     return response.data;
+  },
+
+  // ===== MÉTODOS PARA EL DASHBOARD =====
+
+  // Obtener controles por mes y tipo para el gráfico del dashboard
+  getControlesPorMes: async (animalId?: number, año?: number): Promise<TipoControlPorMes[]> => {
+    try {
+      let url = '/ControlesSalud/dashboard/controles-por-mes';
+      const params = new URLSearchParams();
+      
+      if (animalId) {
+        params.append('animalId', animalId.toString());
+      }
+      
+      if (año) {
+        params.append('año', año.toString());
+      }
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+      
+      console.log(`Consultando controles por mes: ${url}`);
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener controles por mes:', error);
+      return [];
+    }
+  },
+  
+  // Obtener estados por tipo de control para el gráfico del dashboard
+  getEstadosPorTipo: async (animalId?: number): Promise<EstadoPorTipo[]> => {
+    try {
+      let url = '/ControlesSalud/dashboard/estados-por-tipo';
+      
+      if (animalId) {
+        url += `?animalId=${animalId}`;
+      }
+      
+      console.log(`Consultando estados por tipo: ${url}`);
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener estados por tipo:', error);
+      return [];
+    }
+  },
+  
+  // Obtener próximos controles para el panel del dashboard
+  getProximosControles: async (dias: number = 30, animalId?: number): Promise<ProximoControl[]> => {
+    try {
+      let url = `/ControlesSalud/proximos?dias=${dias}`;
+      
+      if (animalId) {
+        url += `&animalId=${animalId}`;
+      }
+      
+      console.log(`Consultando próximos controles: ${url}`);
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener próximos controles:', error);
+      return [];
+    }
   }
 };
 

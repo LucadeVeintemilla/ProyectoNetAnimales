@@ -186,6 +186,9 @@ namespace GanadoAPI.Controllers
                     Sexo = animalDto.Sexo,
                     Estado = animalDto.Estado,
                     RazaId = animalDto.RazaId,
+                    PadreId = animalDto.PadreId,
+                    MadreId = animalDto.MadreId,
+                    Observaciones = animalDto.Observaciones,
                     Activo = true
                 };
 
@@ -201,7 +204,10 @@ namespace GanadoAPI.Controllers
                     Sexo = animal.Sexo,
                     Estado = animal.Estado,
                     RazaId = animal.RazaId,
-                    RazaNombre = (await _context.Razas.FindAsync(animal.RazaId))?.Nombre ?? string.Empty
+                    RazaNombre = (await _context.Razas.FindAsync(animal.RazaId))?.Nombre ?? string.Empty,
+                    PadreId = animal.PadreId,
+                    MadreId = animal.MadreId,
+                    Observaciones = animal.Observaciones
                 };
 
                 return CreatedAtAction(nameof(GetAnimal), new { id = animal.Id }, animalCreado);

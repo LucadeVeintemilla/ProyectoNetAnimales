@@ -32,7 +32,7 @@ import { format, isAfter, isBefore, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
-import { saludService, ResumenSalud } from '../../services/saludService';
+import { saludService, ResumenSalud, TipoControlPorMes, EstadoPorTipo } from '../../services/saludService';
 import { animalService } from '../../services/animalService';
 
 // Colores para gráficos
@@ -50,14 +50,16 @@ const SaludDashboardPage: React.FC = () => {
   });
   const [animalId, setAnimalId] = useState<number | string>('');
   const [animales, setAnimales] = useState<{items: any[], totalCount: number}>({items: [], totalCount: 0});
-  const [tiposPorMes, setTiposPorMes] = useState<any[]>([]);
-  const [estadosPorTipo, setEstadosPorTipo] = useState<any[]>([]);
+  const [tiposPorMes, setTiposPorMes] = useState<TipoControlPorMes[]>([]);
+  const [estadosPorTipo, setEstadosPorTipo] = useState<EstadoPorTipo[]>([]);
+  const [año, setAño] = useState<number>(new Date().getFullYear());
 
   // Cargar datos para el dashboard
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Cargar animales para filtro
         const animalData = await animalService.getAnimales();
@@ -69,8 +71,20 @@ const SaludDashboardPage: React.FC = () => {
         );
         setResumen(resumenData);
         
-        // Simular datos para gráficos (en producción, estos datos deberían venir de la API)
-        simulateChartData();
+        // Cargar datos de controles por mes y tipo
+        const tiposData = await saludService.getControlesPorMes(
+          typeof animalId === 'number' ? animalId : undefined,
+          año
+        );
+        console.log('Datos de controles por mes recibidos:', tiposData);
+        setTiposPorMes(tiposData);
+        
+        // Cargar datos de estados por tipo
+        const estadosData = await saludService.getEstadosPorTipo(
+          typeof animalId === 'number' ? animalId : undefined
+        );
+        console.log('Datos de estados por tipo recibidos:', estadosData);
+        setEstadosPorTipo(estadosData);
         
       } catch (error) {
         console.error('Error al cargar datos del dashboard:', error);
@@ -81,34 +95,22 @@ const SaludDashboardPage: React.FC = () => {
     };
     
     loadDashboardData();
-  }, [animalId]);
-
-  // Función para simular datos de gráficos (reemplazar con datos reales de API)
-  const simulateChartData = () => {
-    // Datos por mes y tipo
-    const tiposMes = [
-      { name: 'Ene', vacuna: 4, tratamiento: 2, revision: 3, cirugia: 1 },
-      { name: 'Feb', vacuna: 3, tratamiento: 1, revision: 4, cirugia: 0 },
-      { name: 'Mar', vacuna: 2, tratamiento: 3, revision: 1, cirugia: 1 },
-      { name: 'Abr', vacuna: 5, tratamiento: 2, revision: 2, cirugia: 0 },
-      { name: 'May', vacuna: 3, tratamiento: 4, revision: 3, cirugia: 2 },
-      { name: 'Jun', vacuna: 4, tratamiento: 1, revision: 5, cirugia: 1 },
-    ];
-    setTiposPorMes(tiposMes);
-    
-    // Datos por estado y tipo
-    const estadosTipo = [
-      { name: 'Vacuna', completado: 12, pendiente: 5, atrasado: 2 },
-      { name: 'Tratamiento', completado: 8, pendiente: 4, atrasado: 1 },
-      { name: 'Revisión', completado: 10, pendiente: 6, atrasado: 2 },
-      { name: 'Cirugía', completado: 3, pendiente: 1, atrasado: 0 },
-    ];
-    setEstadosPorTipo(estadosTipo);
-  };
+  }, [animalId, año]);
 
   // Manejar cambio de filtro por animal
   const handleAnimalChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     setAnimalId(event.target.value as number);
+  };
+  
+  // Manejar cambio de año para filtrado
+  const handleAñoChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setAño(event.target.value as number);
+  };
+  
+  // Obtener lista de años para el selector (año actual y 5 años atrás)
+  const añosDisponibles = () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 6 }, (_, i) => currentYear - i);
   };
 
   // Preparar datos para gráfico de estado general (pie chart)
@@ -128,12 +130,12 @@ const SaludDashboardPage: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Título y filtro */}
+      {/* Título y filtros */}
       <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} lg={4}>
           <Typography variant="h5">Dashboard de Salud Animal</Typography>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={3} lg={4}>
           <FormControl fullWidth variant="outlined" size="small">
             <InputLabel id="animal-filter-label">Filtrar por Animal</InputLabel>
             <Select
@@ -148,6 +150,22 @@ const SaludDashboardPage: React.FC = () => {
                 <MenuItem key={animal.id} value={animal.id}>
                   {animal.numeroIdentificacion} - {animal.nombre || 'Sin nombre'}
                 </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} md={3} lg={4}>
+          <FormControl fullWidth variant="outlined" size="small">
+            <InputLabel id="year-filter-label">Año</InputLabel>
+            <Select
+              labelId="year-filter-label"
+              id="year-filter"
+              value={año}
+              onChange={handleAñoChange as any}
+              label="Año"
+            >
+              {añosDisponibles().map((year) => (
+                <MenuItem key={year} value={year}>{year}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -279,6 +297,7 @@ const SaludDashboardPage: React.FC = () => {
                   <Bar dataKey="tratamiento" name="Tratamiento" fill="#82ca9d" />
                   <Bar dataKey="revision" name="Revisión" fill="#ffc658" />
                   <Bar dataKey="cirugia" name="Cirugía" fill="#ff8042" />
+                  <Bar dataKey="otro" name="Otros" fill="#8dd1e1" />
                 </BarChart>
               </ResponsiveContainer>
             </Box>

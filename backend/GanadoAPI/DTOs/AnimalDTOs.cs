@@ -14,6 +14,7 @@ namespace GanadoAPI.DTOs
         public string? RazaNombre { get; set; }
         public int? PadreId { get; set; }
         public int? MadreId { get; set; }
+        public string? Observaciones { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime? FechaActualizacion { get; set; }
@@ -33,6 +34,9 @@ namespace GanadoAPI.DTOs
         public string Estado { get; set; } = null!;
         [Required]
         public int RazaId { get; set; }
+        public int? PadreId { get; set; }
+        public int? MadreId { get; set; }
+        public string? Observaciones { get; set; }
     }
 
     public class AnimalDetalleDTO
@@ -44,6 +48,10 @@ namespace GanadoAPI.DTOs
         public string Sexo { get; set; } = null!;
         public string Estado { get; set; } = null!;
         public string Raza { get; set; } = null!;
+        public int? PadreId { get; set; }
+        public int? MadreId { get; set; }
+        public string? Observaciones { get; set; }
+        public bool Activo { get; set; }
     }
 
     public class AnimalActualizacionDTO

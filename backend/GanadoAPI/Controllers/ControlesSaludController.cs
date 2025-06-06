@@ -8,6 +8,7 @@ using GanadoAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace GanadoAPI.Controllers
 {
@@ -17,6 +18,36 @@ namespace GanadoAPI.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ControlesSaludController> _logger;
+
+        /// <summary>
+        /// Normaliza el tipo de control para evitar problemas con acentos y mayúsculas
+        /// </summary>
+        private string NormalizarTipoControl(string tipo)
+        {
+            if (string.IsNullOrEmpty(tipo))
+                return "otro";
+
+            // Convertir a minúsculas y eliminar acentos
+            string normalizado = tipo.ToLower();
+            normalizado = normalizado.Replace("á", "a")
+                                   .Replace("é", "e")
+                                   .Replace("í", "i")
+                                   .Replace("ó", "o")
+                                   .Replace("ú", "u")
+                                   .Replace(" ", "");
+
+            // Clasificar por tipo
+            if (normalizado.Contains("vacun"))
+                return "vacuna";
+            else if (normalizado.Contains("tratam"))
+                return "tratamiento";
+            else if (normalizado.Contains("revis"))
+                return "revision";
+            else if (normalizado.Contains("cirug"))
+                return "cirugia";
+            else
+                return "otro";
+        }
 
         public ControlesSaludController(ApplicationDbContext context, ILogger<ControlesSaludController> logger)
         {
@@ -107,21 +138,31 @@ namespace GanadoAPI.Controllers
         /// Obtiene los próximos controles programados
         /// </summary>
         [HttpGet("proximos")]
-        public async Task<ActionResult<IEnumerable<ControlSaludDTO>>> GetProximosControles([FromQuery] int dias = 30)
+        public async Task<ActionResult<IEnumerable<ControlSaludDTO>>> GetProximosControles([FromQuery] int dias = 30, [FromQuery] int? animalId = null)
         {
             try
             {
                 var fechaLimite = DateTime.Today.AddDays(dias);
-                
-                var controles = await _context.ControlesSalud
-                    .Where(c => c.ProximoControl.HasValue && 
-                              c.ProximoControl.Value.Date >= DateTime.Today && 
-                              c.ProximoControl.Value.Date <= fechaLimite)
+
+                var query = _context.ControlesSalud
+                    .Include(c => c.Animal)
+                    .Where(c => c.ProximoControl.HasValue &&
+                              c.ProximoControl.Value.Date >= DateTime.Today &&
+                              c.ProximoControl.Value.Date <= fechaLimite);
+
+                if (animalId.HasValue)
+                {
+                    query = query.Where(c => c.AnimalId == animalId.Value);
+                }
+
+                var controles = await query
                     .OrderBy(c => c.ProximoControl)
                     .Select(c => new ControlSaludDTO
                     {
                         Id = c.Id,
+                        AnimalId = c.AnimalId,
                         Fecha = c.Fecha,
+                        ProximoControl = c.ProximoControl,
                         TipoControl = c.TipoControl,
                         Diagnostico = c.Descripcion,
                         Tratamiento = c.Medicamento,
@@ -132,12 +173,134 @@ namespace GanadoAPI.Controllers
                     })
                     .ToListAsync();
 
-                return Ok(controles);
+                // Agregar los días restantes para cada control
+                var proximosControlesFormatted = controles.Select(c => new
+                {
+                    c.Id,
+                    c.AnimalId,
+                    AnimalNombre = c.AnimalNombre ?? "Sin nombre",
+                    NumeroIdentificacion = c.AnimalIdentificacion ?? "Sin ID",
+                    Fecha = c.ProximoControl?.ToString("yyyy-MM-dd"),
+                    Tipo = c.TipoControl?.ToLower() ?? "otro",
+                    Descripcion = c.Diagnostico ?? "Control programado",
+                    DiasRestantes = c.ProximoControl.HasValue ? (int)(c.ProximoControl.Value.Date - DateTime.Today).TotalDays : 0
+                }).ToList();
+
+                return Ok(proximosControlesFormatted);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener los próximos controles de salud");
                 return StatusCode(500, new { message = "Error interno del servidor al obtener los próximos controles" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene los controles por tipo y mes para el dashboard
+        /// </summary>
+        [HttpGet("dashboard/controles-por-mes")]
+        public async Task<ActionResult<IEnumerable<object>>> GetControlesPorMes([FromQuery] int año = 0, [FromQuery] int? animalId = null)
+        {
+            try
+            {
+                if (año == 0)
+                {
+                    año = DateTime.Today.Year;
+                }
+
+                var fechaInicio = new DateTime(año, 1, 1);
+                var fechaFin = new DateTime(año, 12, 31, 23, 59, 59);
+
+                var query = _context.ControlesSalud
+                    .Where(c => c.Fecha >= fechaInicio && c.Fecha <= fechaFin);
+
+                if (animalId.HasValue)
+                {
+                    query = query.Where(c => c.AnimalId == animalId.Value);
+                }
+
+                var controles = await query.ToListAsync();
+
+                // Normalizar tipos de control para evitar problemas con mayúsculas y acentos
+                var controlesPorMes = controles.Select(c => new
+                {
+                    Mes = c.Fecha.Month,
+                    // Normalizar el tipo de control para clasificarlo correctamente
+                    TipoNormalizado = NormalizarTipoControl(c.TipoControl)
+                }).ToList();
+
+                // Agrupar por mes y tipo de control
+                var meses = Enumerable.Range(1, 12)
+                    .Select(mes => new
+                    {
+                        Month = mes,
+                        MonthName = CultureInfo.GetCultureInfo("es-ES").DateTimeFormat.GetMonthName(mes).Substring(0, 3),
+                        Vacuna = controlesPorMes.Count(c => c.Mes == mes && c.TipoNormalizado == "vacuna"),
+                        Tratamiento = controlesPorMes.Count(c => c.Mes == mes && c.TipoNormalizado == "tratamiento"),
+                        Revision = controlesPorMes.Count(c => c.Mes == mes && c.TipoNormalizado == "revision"),
+                        Cirugia = controlesPorMes.Count(c => c.Mes == mes && c.TipoNormalizado == "cirugia"),
+                        Otro = controlesPorMes.Count(c => c.Mes == mes && c.TipoNormalizado == "otro")
+                    })
+                    .Select(m => new
+                    {
+                        name = m.MonthName,
+                        vacuna = m.Vacuna,
+                        tratamiento = m.Tratamiento,
+                        revision = m.Revision,
+                        cirugia = m.Cirugia,
+                        otro = m.Otro
+                    })
+                    .ToList();
+
+                return Ok(meses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los controles por mes");
+                return StatusCode(500, new { message = "Error interno del servidor al obtener los controles por mes" });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la distribución de estados por tipo de control para el dashboard
+        /// </summary>
+        [HttpGet("dashboard/estados-por-tipo")]
+        public async Task<ActionResult<IEnumerable<object>>> GetEstadosPorTipo([FromQuery] int? animalId = null)
+        {
+            try
+            {
+                var query = _context.ControlesSalud.AsQueryable();
+
+                if (animalId.HasValue)
+                {
+                    query = query.Where(c => c.AnimalId == animalId.Value);
+                }
+
+                var controles = await query.ToListAsync();
+
+                // Normalizar tipos de control para evitar problemas con mayúsculas y acentos
+                var controlesNormalizados = controles.Select(c => new {
+                    TipoNormalizado = NormalizarTipoControl(c.TipoControl),
+                    Estado = c.Estado?.ToLower() ?? "pendiente"
+                }).ToList();
+                
+                // Agrupar por tipo de control y estado
+                var tiposControl = new[] { "vacuna", "tratamiento", "revision", "cirugia", "otro" };
+                var datosPorTipo = tiposControl.Select(tipo => new
+                {
+                    name = tipo == "revision" ? "revisión" : 
+                           tipo == "cirugia" ? "cirugía" : tipo,
+                    completado = controlesNormalizados.Count(c => c.TipoNormalizado == tipo && c.Estado == "completado"),
+                    pendiente = controlesNormalizados.Count(c => c.TipoNormalizado == tipo && c.Estado == "pendiente"),
+                    atrasado = controlesNormalizados.Count(c => c.TipoNormalizado == tipo && c.Estado == "atrasado")
+                }).ToList();
+
+                return Ok(datosPorTipo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los estados por tipo de control");
+                return StatusCode(500, new { message = "Error interno del servidor al obtener los estados por tipo de control" });
             }
         }
 
@@ -348,3 +511,5 @@ namespace GanadoAPI.Controllers
         public string? AnimalIdentificacion { get; set; }
     }
 }
+    
+
