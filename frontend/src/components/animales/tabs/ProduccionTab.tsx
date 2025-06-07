@@ -145,22 +145,7 @@ const ProduccionTab: React.FC<ProduccionTabProps> = ({ animalId }) => {
           Registros de Producción de Leche
         </Typography>
         <Box>
-          <Button
-            variant="outlined"
-            startIcon={<ExportIcon />}
-            onClick={handleExportar}
-            sx={{ mr: 1 }}
-          >
-            Exportar
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => console.log('Nuevo registro')}
-          >
-            Nuevo Registro
-          </Button>
+         
         </Box>
       </Box>
 

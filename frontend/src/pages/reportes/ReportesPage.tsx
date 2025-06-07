@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, Container, Paper, Tabs, Tab, Divider } from '@mui/material';
 import AnimalDetailedReport from './AnimalDetailedReport';
+import ResumenGeneral from './ResumenGeneral';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -60,9 +61,10 @@ const ReportesPage: React.FC = () => {
           {/* Tab Panel Contents */}
           <TabPanel value={tabValue} index={0}>
             <Typography variant="h6">Resumen General</Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
               Reporte general con estadísticas de la producción global
             </Typography>
+            <ResumenGeneral />
           </TabPanel>
           
           <TabPanel value={tabValue} index={1}>

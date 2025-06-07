@@ -180,14 +180,7 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
         <Typography variant="h6" component="h2">
           Historial de Salud
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => console.log('Nuevo control de salud')}
-        >
-          Nuevo Control
-        </Button>
+        
       </Box>
 
       {/* Filtros */}
