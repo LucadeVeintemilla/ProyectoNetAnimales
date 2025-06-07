@@ -16,6 +16,7 @@ namespace GanadoAPI.Data
         public DbSet<Animal> Animales { get; set; } = null!;
         public DbSet<Raza> Razas { get; set; } = null!;
         public DbSet<ProduccionLeche> ProduccionesLeche { get; set; } = null!;
+        public DbSet<ProduccionCarne> ProduccionesCarne { get; set; } = null!;
         public DbSet<ControlSalud> ControlesSalud { get; set; } = null!;
         public DbSet<Reproduccion> Reproducciones { get; set; } = null!;
         public DbSet<Venta> Ventas { get; set; } = null!;
@@ -112,6 +113,13 @@ namespace GanadoAPI.Data
                 .HasMany(a => a.Ventas)
                 .WithOne(v => v.Animal!)
                 .HasForeignKey(v => v.AnimalId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            // Configuración para la relación Animal - ProduccionCarne
+            modelBuilder.Entity<Animal>()
+                .HasMany(a => a.ProduccionesCarne)
+                .WithOne(pc => pc.Animal!)
+                .HasForeignKey(pc => pc.AnimalId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configuración de índices para mejorar el rendimiento de consultas comunes

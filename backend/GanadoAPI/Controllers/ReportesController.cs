@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace GanadoAPI.Controllers
 {
+    // Import our custom DTOs for the detailed report
+    using GanadoAPI.Models;
     [Route("api/[controller]")]
     [ApiController]
     public class ReportesController : BaseApiController
@@ -326,6 +328,297 @@ namespace GanadoAPI.Controllers
             {
                 _logger.LogError(ex, "Error al calcular el intervalo entre partos");
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene un reporte detallado de un animal específico
+        /// </summary>
+        [HttpGet("detalle-animal/{animalId}")]
+        public async Task<ActionResult<ReporteDetalladoAnimalDTO>> GetReporteDetalladoAnimal(int animalId)
+        {
+            try
+            {
+                // Buscar el animal
+                var animal = await _context.Animales
+                    .Include(a => a.Raza)
+                    .Include(a => a.Madre)
+                    .Include(a => a.Padre)
+                    .FirstOrDefaultAsync(a => a.Id == animalId);
+
+                if (animal == null)
+                {
+                    return NotFound($"Animal con ID {animalId} no encontrado");
+                }
+
+                // Calcular edad en meses
+                TimeSpan edad = DateTime.Now - animal.FechaNacimiento;
+                int edadMeses = (int)(edad.TotalDays / 30.44);
+
+                // Obtener historial de producción de leche
+                var historialLeche = await _context.ProduccionesLeche
+                    .Where(p => p.AnimalId == animalId)
+                    .OrderByDescending(p => p.Fecha)
+                    .Select(p => new ProduccionLecheDTO
+                    {
+                        Id = p.Id,
+                        Fecha = p.Fecha,
+                        CantidadLitros = p.CantidadLitros,
+                        Observaciones = p.Observaciones
+                    })
+                    .ToListAsync();
+
+                // Obtener historial de producción de carne (pesajes)
+                var historialCarne = await _context.ProduccionesCarne
+                    .Where(p => p.AnimalId == animalId)
+                    .OrderByDescending(p => p.FechaSacrificio)
+                    .Select(p => new ReporteProduccionCarneDTO
+                    {
+                        Id = p.Id,
+                        Fecha = p.FechaSacrificio,
+                        Peso = p.PesoVivo,
+                        Observaciones = p.RendimientoCarnico.ToString() ?? ""
+                    })
+                    .ToListAsync();
+
+                // Obtener descendencia
+                var hijos = new List<AnimalSimpleDTO>();
+                
+                if (animal.Sexo == "M")
+                {
+                    // Si es macho, buscar hijos donde es padre
+                    var hijosEncontrados = await _context.Animales
+                        .Where(a => a.PadreId == animalId)
+                        .OrderByDescending(a => a.FechaNacimiento)
+                        .Select(a => new AnimalSimpleDTO
+                        {
+                            Id = a.Id,
+                            NumeroIdentificacion = a.NumeroIdentificacion,
+                            Nombre = a.Nombre
+                        })
+                        .ToListAsync();
+                    
+                    hijos.AddRange(hijosEncontrados);
+                }
+                else if (animal.Sexo == "H")
+                {
+                    // Si es hembra, buscar hijos donde es madre
+                    var hijosEncontrados = await _context.Animales
+                        .Where(a => a.MadreId == animalId)
+                        .OrderByDescending(a => a.FechaNacimiento)
+                        .Select(a => new AnimalSimpleDTO
+                        {
+                            Id = a.Id,
+                            NumeroIdentificacion = a.NumeroIdentificacion,
+                            Nombre = a.Nombre
+                        })
+                        .ToListAsync();
+                    
+                    hijos.AddRange(hijosEncontrados);
+                }
+                
+                // Eventos reproductivos
+                var eventosReproductivos = new List<ReporteEventoReproductivoDTO>();
+                
+                // Si es hembra, obtener eventos como madre
+                if (animal.Sexo == "H")
+                {
+                    var reproduccionesComoHembra = await _context.Reproducciones
+                        .Include(r => r.Macho)
+                        .Where(r => r.HembraId == animalId)
+                        .OrderByDescending(r => r.FechaMonta)
+                        .Select(r => new ReporteEventoReproductivoDTO
+                        {
+                            Id = r.Id,
+                            FechaServicio = r.FechaMonta ?? DateTime.MinValue,
+                            FechaPreñez = r.FechaConfirmacionPrenez,
+                            FechaProbableParto = r.FechaProbableParto,
+                            FechaRealParto = r.FechaRealParto,
+                            TipoServicio = r.TipoMonta,
+                            Estado = r.Resultado != null ? r.Resultado : "En proceso",
+                            MadreId = r.HembraId,
+                            MadreNumeroIdentificacion = r.Hembra != null ? r.Hembra.NumeroIdentificacion != null ? r.Hembra.NumeroIdentificacion : "" : "",
+                            MadreNombre = r.Hembra != null ? r.Hembra.Nombre != null ? r.Hembra.Nombre : "" : "",
+                            PadreId = r.MachoId ?? 0,
+                            PadreNumeroIdentificacion = r.Macho != null ? (r.Macho.NumeroIdentificacion != null ? r.Macho.NumeroIdentificacion : "") : "Desconocido",
+                            PadreNombre = r.Macho != null ? (r.Macho.Nombre != null ? r.Macho.Nombre : "") : "Desconocido",
+                            Observaciones = r.Observaciones
+                        })
+                        .ToListAsync();
+                    
+                    eventosReproductivos.AddRange(reproduccionesComoHembra);
+                }
+                
+                // Si es macho, obtener eventos como padre
+                if (animal.Sexo == "M")
+                {
+                    var reproduccionesComoPadre = await _context.Reproducciones
+                        .Include(r => r.Hembra)
+                        .Where(r => r.MachoId == animalId)
+                        .OrderByDescending(r => r.FechaMonta)
+                        .Select(r => new ReporteEventoReproductivoDTO
+                        {
+                            Id = r.Id,
+                            FechaServicio = r.FechaMonta ?? DateTime.MinValue,
+                            FechaPreñez = r.FechaConfirmacionPrenez,
+                            FechaProbableParto = r.FechaProbableParto,
+                            FechaRealParto = r.FechaRealParto,
+                            TipoServicio = r.TipoMonta,
+                            Estado = r.Resultado != null ? r.Resultado : "En proceso",
+                            MadreId = r.HembraId,
+                            MadreNumeroIdentificacion = r.Hembra != null ? r.Hembra.NumeroIdentificacion != null ? r.Hembra.NumeroIdentificacion : "" : "",
+                            MadreNombre = r.Hembra != null ? r.Hembra.Nombre != null ? r.Hembra.Nombre : "" : "",
+                            PadreId = r.MachoId ?? 0,
+                            PadreNumeroIdentificacion = animal.NumeroIdentificacion,
+                            PadreNombre = animal.Nombre,
+                            Observaciones = r.Observaciones
+                        })
+                        .ToListAsync();
+                    
+                    eventosReproductivos.AddRange(reproduccionesComoPadre);
+                }
+
+                // Obtener historial de salud
+                var historialSalud = await _context.ControlesSalud
+                    .Where(c => c.AnimalId == animalId)
+                    .OrderByDescending(c => c.Fecha)
+                    .Select(c => new ControlSaludDTO
+                    {
+                        Id = c.Id,
+                        Fecha = c.Fecha,
+                        TipoControl = c.TipoControl != null ? c.TipoControl : "",
+                        Diagnostico = c.Diagnostico != null ? c.Diagnostico : "",
+                        Tratamiento = c.Medicamento != null ? c.Medicamento : "",
+                        Costo = 0,
+                        AnimalNombre = animal.Nombre,
+                        AnimalIdentificacion = animal.NumeroIdentificacion
+                    })
+                    .ToListAsync();
+
+                // Determinar estado actual
+                var enLactancia = historialLeche.Any() && historialLeche.First().Fecha >= DateTime.Today.AddDays(-30);
+                
+                // Verificar si está en gestación (si es hembra)
+                bool enGestacion = false;
+                if (animal.Sexo == "H")
+                {
+                    enGestacion = await _context.Reproducciones
+                        .AnyAsync(r => r.HembraId == animalId && 
+                                   r.Resultado != null && r.Resultado == "En gestación" && 
+                                   r.FechaConfirmacionPrenez.HasValue && 
+                                   r.FechaProbableParto.HasValue && 
+                                   r.FechaProbableParto > DateTime.Today);
+                }
+
+                // Calcular promedios y totales
+                decimal promedioLeche = historialLeche.Any() ? historialLeche.Average(h => h.CantidadLitros) : 0;
+                decimal totalLeche = historialLeche.Sum(h => h.CantidadLitros);
+                decimal pesoPromedio = historialCarne.Any() ? historialCarne.Average(h => h.Peso) : 0;
+                
+                // Obtener fecha del último control de salud
+                DateTime? fechaUltimoControl = historialSalud.Any() ? historialSalud.First().Fecha : null;
+
+                // Determinar estado actual consolidado
+                string estadoActual = animal.Estado;
+                if (enGestacion)
+                {
+                    estadoActual = "En gestación";
+                }
+                else if (enLactancia)
+                {
+                    estadoActual = "En lactancia";
+                }
+
+                // Contar eventos reproductivos
+                int totalPartos = eventosReproductivos.Count(e => e.FechaRealParto.HasValue);
+                int totalInseminaciones = eventosReproductivos.Count(e => e.TipoServicio != null && e.TipoServicio.Contains("Inseminación"));
+                
+                // Crear el DTO de respuesta
+                var reporteDetallado = new ReporteDetalladoAnimalDTO
+                {
+                    Id = animal.Id,
+                    NumeroIdentificacion = animal.NumeroIdentificacion,
+                    Nombre = animal.Nombre,
+                    FechaNacimiento = animal.FechaNacimiento,
+                    EdadMeses = edadMeses,
+                    Sexo = animal.Sexo,
+                    RazaNombre = animal.Raza?.Nombre ?? "Sin especificar",
+                    Estado = animal.Estado,
+                    EstadoActual = estadoActual,
+                    EnLactancia = enLactancia,
+                    EnGestacion = enGestacion,
+                    FechaUltimoControl = fechaUltimoControl,
+                    Madre = animal.Madre != null ? new AnimalSimpleDTO
+                    {
+                        Id = animal.Madre.Id,
+                        NumeroIdentificacion = animal.Madre.NumeroIdentificacion,
+                        Nombre = animal.Madre.Nombre
+                    } : null,
+                    Padre = animal.Padre != null ? new AnimalSimpleDTO
+                    {
+                        Id = animal.Padre.Id,
+                        NumeroIdentificacion = animal.Padre.NumeroIdentificacion,
+                        Nombre = animal.Padre.Nombre
+                    } : null,
+                    Hijos = hijos,
+                    
+                    // Producción
+                    HistorialProduccionLeche = new List<DTOs.ProduccionLecheDTO>(historialLeche.Select(h => new DTOs.ProduccionLecheDTO {
+                        Id = h.Id,
+                        Fecha = h.Fecha,
+                        CantidadLitros = h.CantidadLitros, 
+                        Observaciones = h.Observaciones
+                    })),
+                    HistorialProduccionCarne = new List<DTOs.ProduccionCarneDTO>(historialCarne.Select(c => new DTOs.ProduccionCarneDTO {
+                        Id = c.Id,
+                        AnimalId = animalId,
+                        NombreAnimal = animal.Nombre,
+                        NumeroIdentificacion = animal.NumeroIdentificacion,
+                        FechaSacrificio = c.Fecha,
+                        PesoVivo = c.Peso,
+                        PesoCanal = 0,
+                        RendimientoCarnico = 0,
+                        Observaciones = c.Observaciones,
+                        Destino = "Faenamiento"
+                    })),
+                    PromedioProduccionLeche = promedioLeche,
+                    TotalProduccionLeche = totalLeche,
+                    PesoPromedio = pesoPromedio,
+                    
+                    // Reproducción
+                    EventosReproductivos = new List<DTOs.ReproduccionDTO>(eventosReproductivos.Select(e => new DTOs.ReproduccionDTO {
+                        Id = e.Id,
+                        Fecha = e.FechaServicio,
+                        TipoEvento = e.TipoServicio ?? "Servicio",
+                        Resultado = e.Estado,
+                        HembraNombre = e.MadreNombre,
+                        HembraIdentificacion = e.MadreNumeroIdentificacion,
+                        MachoNombre = e.PadreNombre,
+                        MachoIdentificacion = e.PadreNumeroIdentificacion
+                    })),
+                    TotalPartos = totalPartos,
+                    TotalInseminaciones = totalInseminaciones,
+                    
+                    // Salud
+                    HistorialSalud = new List<DTOs.ControlSaludDTO>(historialSalud.Select(c => new DTOs.ControlSaludDTO
+                    {
+                        Id = c.Id,
+                        Fecha = c.Fecha,
+                        TipoControl = c.TipoControl,
+                        Diagnostico = c.Diagnostico,
+                        Tratamiento = c.Tratamiento,
+                        Costo = c.Costo,
+                        AnimalIdentificacion = c.AnimalIdentificacion,
+                        AnimalNombre = c.AnimalNombre
+                    }))
+                };
+
+                return Ok(reporteDetallado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error al generar reporte detallado del animal {animalId}");
+                return StatusCode(500, new { message = $"Error interno del servidor al generar el reporte detallado del animal {animalId}" });
             }
         }
     }

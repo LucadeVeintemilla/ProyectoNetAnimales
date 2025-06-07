@@ -48,6 +48,8 @@ namespace GanadoAPI.Models
         public virtual ICollection<ProduccionLeche> ProduccionesLeche { get; set; } = new List<ProduccionLeche>();
         public virtual ICollection<ControlSalud> ControlesSalud { get; set; } = new List<ControlSalud>();
         
+        public virtual ICollection<ProduccionCarne> ProduccionesCarne { get; set; } = new List<ProduccionCarne>();
+        
         // Reproducciones donde este animal es la hembra
         public virtual ICollection<Reproduccion> ReproduccionesComoHembra { get; set; } = new List<Reproduccion>();
         

@@ -818,6 +818,172 @@
     ]
   },
   {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "GetProduccionesCarne",
+    "RelativePath": "api/ProduccionCarne",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "fechaInicio",
+        "Type": "System.Nullable\u00601[[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "fechaFin",
+        "Type": "System.Nullable\u00601[[System.DateTime, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "animalId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "GanadoAPI.DTOs.PagedResult\u00601[[GanadoAPI.DTOs.ProduccionCarneDTO, GanadoAPI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "PostProduccionCarne",
+    "RelativePath": "api/ProduccionCarne",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "produccionDto",
+        "Type": "GanadoAPI.DTOs.ProduccionCarneCreacionDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "GanadoAPI.DTOs.ProduccionCarneDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "GetProduccionCarne",
+    "RelativePath": "api/ProduccionCarne/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "GanadoAPI.DTOs.ProduccionCarneDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "PutProduccionCarne",
+    "RelativePath": "api/ProduccionCarne/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "produccionDto",
+        "Type": "GanadoAPI.DTOs.ProduccionCarneCreacionDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "DeleteProduccionCarne",
+    "RelativePath": "api/ProduccionCarne/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ProduccionCarneController",
+    "Method": "GetResumenProduccion",
+    "RelativePath": "api/ProduccionCarne/resumen",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "fechaInicio",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      },
+      {
+        "Name": "fechaFin",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "GanadoAPI.DTOs.ResumenProduccionCarneDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "GanadoAPI.Controllers.ProduccionLecheController",
     "Method": "GetProduccionesLeche",
     "RelativePath": "api/ProduccionLeche",
@@ -1246,6 +1412,32 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "GanadoAPI.Controllers.ReportesController",
+    "Method": "GetReporteDetalladoAnimal",
+    "RelativePath": "api/Reportes/detalle-animal/{animalId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "animalId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "GanadoAPI.DTOs.ReporteDetalladoAnimalDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "GanadoAPI.Controllers.ReportesController",

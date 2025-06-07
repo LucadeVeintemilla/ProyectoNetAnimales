@@ -28,6 +28,9 @@ import MedicamentosPage from './pages/salud/MedicamentosPage';
 import SaludDetallesPage from './pages/salud/SaludDetallesPage';
 import ReportesPage from './pages/reportes/ReportesPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ProduccionCarnePage from './pages/produccion-carne/ProduccionCarnePage';
+import ProduccionCarneFormPage from './pages/produccion-carne/ProduccionCarneFormPage';
+import ProduccionCarneDetallePage from './pages/produccion-carne/ProduccionCarneDetallePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Componente de ruta protegida
@@ -115,6 +118,14 @@ const App: React.FC = () => {
                   <Route index element={<ProduccionPage />} />
                   <Route path="nuevo" element={<ProduccionFormPage />} />
                   <Route path=":id/editar" element={<ProduccionFormPage />} />
+                </Route>
+                
+                {/* Producción de carne */}
+                <Route path="/produccion-carne">
+                  <Route index element={<ProduccionCarnePage />} />
+                  <Route path="nuevo" element={<ProduccionCarneFormPage />} />
+                  <Route path=":id" element={<ProduccionCarneDetallePage />} />
+                  <Route path=":id/editar" element={<ProduccionCarneFormPage />} />
                 </Route>
                 
                 {/* Reproducción */}
