@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -43,6 +43,7 @@ const AnimalDetallePage: React.FC = () => {
   const { id: idParam } = useParams<{ id: string }>();
   const id = idParam ?? ''; // Provide a default empty string if undefined
   const navigate = useNavigate();
+  const location = useLocation();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('Administrador');
   
@@ -78,6 +79,18 @@ const AnimalDetallePage: React.FC = () => {
   useEffect(() => {
     fetchAnimal();
   }, [id]);
+
+  // Leer el parámetro tab de la URL cuando se carga la página
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam !== null) {
+      const tabIndex = parseInt(tabParam, 10);
+      if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3) { // Asegurarse que el índice es válido
+        setTabValue(tabIndex);
+      }
+    }
+  }, [location.search]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

@@ -134,7 +134,14 @@ const ProduccionPage: React.FC = () => {
   };
 
   const handleView = (id: number) => {
-    navigate(`/produccion/${id}`);
+    // Buscar el registro seleccionado para obtener el ID del animal
+    const produccion = producciones.find(p => p.id === id);
+    if (produccion && produccion.animalId) {
+      // Redirigir a la página del animal con la pestaña de producción seleccionada (tab index 1)
+      navigate(`/animales/${produccion.animalId}?tab=1`);
+    } else {
+      console.error('No se encontró el ID del animal para esta producción');
+    }
     handleMenuClose();
   };
 

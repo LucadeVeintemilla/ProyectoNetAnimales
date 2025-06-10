@@ -109,16 +109,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Configuración de CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin",
-        builder => builder
-            .WithOrigins("http://localhost:3000") // Ajusta según tu frontend
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials());
-});
+// Nota: Ya hemos configurado CORS anteriormente, no necesitamos duplicarlo
 
 // Configuración de controladores
 builder.Services.AddControllers();
@@ -181,7 +172,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Asegurarse de que CORS está antes de otros middlewares
-app.UseCors(MyAllowSpecificOrigins);
+// Aplicar la política CORS con opciones adicionales para solucionar problemas de CORS
+app.UseCors(policy => policy
+    .WithOrigins("http://localhost:3000")
+    .AllowAnyMethod()
+    .AllowAnyHeader()
+    .AllowCredentials()
+    .SetIsOriginAllowed(origin => true)); // Esto es más permisivo para desarrollo
 
 // Asegurarse de que el middleware de autenticación y autorización esté configurado
 app.UseAuthentication();

@@ -277,10 +277,20 @@ const DashboardPage: React.FC = () => {
           const reproduccionReciente = await reproduccionService.getReproducciones(1, 3);
           if (reproduccionReciente.items && reproduccionReciente.items.length > 0) {
             reproduccionReciente.items.forEach((item: ReproduccionBaseDto) => {
+              // Verificar si tenemos TipoEvento y extraer valores correctamente
+              const tipoEvento = getPropertySafe(item, 'TipoEvento') || 'Evento';
+              
+              // Usamos "Animal #ID" en lugar de nombre ya que no tenemos el nombre directamente
+              // Solo tenemos el ID del animal hembra
+              const hembraId = getPropertySafe(item, 'HembraId');
+              const animalDesc = hembraId ? `Animal #${hembraId}` : 'Animal';
+              
+              const resultado = getPropertySafe(item, 'Resultado');
+              
               ultimosRegistros.push({
                 id: getPropertySafe(item, 'Id') || 0,
                 tipo: 'reproduccion',
-                descripcion: `${getPropertySafe(item, 'TipoEvento')}: ${(item as any).HembraNombre || 'Animal'} ${getPropertySafe(item, 'Resultado') ? `- ${getPropertySafe(item, 'Resultado')}` : ''}`,
+                descripcion: `${tipoEvento}: ${animalDesc}${resultado ? ` - ${resultado}` : ''}`,
                 fecha: safeParseDate(getPropertySafe(item, 'Fecha'))
               });
             });
@@ -498,15 +508,7 @@ const DashboardPage: React.FC = () => {
           <Card>
             <CardHeader 
               title="Actividad Reciente" 
-              action={
-                <Button 
-                  color="primary" 
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/actividad')}
-                >
-                  Ver todo
-                </Button>
-              }
+              
             />
             <Divider />
             <List>
@@ -529,52 +531,7 @@ const DashboardPage: React.FC = () => {
         </Grid>
       </Grid>
       
-      {/* Próximos eventos */}
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardHeader title="Próximos Eventos" />
-            <Divider />
-            <CardContent>
-              {upcomingEvents.length > 0 ? (
-                <List>
-                  {upcomingEvents.slice(0, 5).map((event) => (
-                    <ListItem key={`${event.tipo}-${event.id}`} divider>
-                      <ListItemIcon>
-                        {event.tipo === 'salud' ? 
-                          <HealthIcon color="error" /> : 
-                          <ReproductionIcon color="secondary" />
-                        }
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={event.descripcion} 
-                        secondary={`${format(event.fecha, 'dd MMM yyyy', { locale: es })} (en ${event.diasRestantes} días)`} 
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Box textAlign="center" py={3}>
-                  <Typography color="textSecondary">
-                    No hay eventos programados para los próximos días.
-                  </Typography>
-                </Box>
-              )}
-              
-              <Box display="flex" justifyContent="flex-end" mt={2}>
-                <Button 
-                  variant="text" 
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/calendario')}
-                  disabled={upcomingEvents.length === 0}
-                >
-                  Ver todos
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Se eliminó la sección de Próximos eventos */}
     </Box>
   );
 };

@@ -65,7 +65,6 @@ const menuItems = [
   { text: 'Reproducción', path: '/reproduccion', icon: <ReproductionIcon /> },
   { text: 'Salud', path: '/salud', icon: <HealthIcon /> },
   { text: 'Reportes', path: '/reportes', icon: <ReportsIcon /> },
-  { text: 'Configuración', path: '/configuracion', icon: <SettingsIcon /> },
 ];
 
 const MainLayout: React.FC = () => {
