@@ -286,9 +286,7 @@ const ReproduccionPage: React.FC = () => {
                   <TableCell>Tipo</TableCell>
                   <TableCell>Hembra</TableCell>
                   <TableCell>Macho</TableCell>
-                  <TableCell>Fecha</TableCell>
                   <TableCell>Estado</TableCell>
-                  <TableCell>Registrado</TableCell>
                   <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -370,7 +368,6 @@ const ReproduccionPage: React.FC = () => {
                             </Typography>
                           )}
                         </TableCell>
-                        <TableCell>{(evento.fechaMonta)}</TableCell>
                         <TableCell>
                           <Chip
                             label={evento.resultado || 'Pendiente'}
@@ -386,7 +383,7 @@ const ReproduccionPage: React.FC = () => {
                             }
                           />
                         </TableCell>
-                        <TableCell>{formatDateTime(evento.fechaCreacion ?? '')}</TableCell>
+                       
                         <TableCell align="right">
                           <IconButton
                             size="small"

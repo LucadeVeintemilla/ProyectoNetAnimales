@@ -17,6 +17,7 @@ export interface Animal {
   activo: boolean;
   fechaCreacion?: string;
   fechaActualizacion?: string;
+  reproduccionId?: number;
 }
 
 export interface AnimalCreateDto extends Omit<Animal, 'id' | 'fechaCreacion' | 'fechaActualizacion' | 'razaNombre' | 'padreNombre' | 'madreNombre'> {}
@@ -33,6 +34,14 @@ export interface AnimalUpdateDto {
   madreId?: number | null;
   observaciones?: string;
   activo: boolean;
+}
+
+export interface Cria {
+  id: number;
+  numeroIdentificacion: string;
+  nombre: string;
+  fechaNacimiento: string;
+  sexo: 'M' | 'H';
 }
 
 export const animalService = {
@@ -149,6 +158,17 @@ export const animalService = {
     } catch (error) {
       console.error('Error al obtener coeficiente de consanguinidad:', error);
       return null;
+    }
+  },
+
+  // Obtener las crías de un animal
+  getCriasByAnimal: async (animalId: number): Promise<Cria[]> => {
+    try {
+      const response = await api.get(`/animales/crias/${animalId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener las crías del animal:', error);
+      throw error;
     }
   }
 };

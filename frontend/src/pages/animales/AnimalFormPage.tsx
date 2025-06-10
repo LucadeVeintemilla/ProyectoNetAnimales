@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useParams, Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import {
@@ -38,6 +38,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 import { Animal, AnimalCreateDto, AnimalUpdateDto } from '../../services/animalService';
 import animalService from '../../services/animalService';
+import { reproduccionService } from '../../services/reproduccionService';
 import { useAuth } from '../../context/AuthContext';
 
 // Define form data type with string IDs for form handling
@@ -52,18 +53,29 @@ interface AnimalFormData {
   madreId: string; // string in form, will be converted to number on submit
   observaciones?: string;
   activo: boolean;
+  reproduccionId?: string; // Para vincular el animal con el evento de reproducción
 }
 
 const AnimalFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Leer todos los parámetros de la URL
+  const reproduccionId = searchParams.get('reproduccionId');
+  const madreIdParam = searchParams.get('madreId');
+  const padreIdParam = searchParams.get('padreId');
+  const fechaNacimientoParam = searchParams.get('fechaNacimiento');
+  
   const { hasRole } = useAuth();
   const isAdmin = hasRole('Administrador');
   
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>(''); 
+  const [reproduccionData, setReproduccionData] = useState<{ hembraId?: number; machoId?: number; fechaPartoReal?: string }>({});
+  const [paramsProcessed, setParamsProcessed] = useState<boolean>(false);
   const [razas, setRazas] = useState<Array<{ id: number; nombre: string }>>([
     { id: 1, nombre: 'Holstein' },
     { id: 2, nombre: 'Jersey' },
@@ -123,14 +135,15 @@ const AnimalFormPage: React.FC = () => {
     initialValues: {
       nombre: '',
       numeroIdentificacion: '',
-      fechaNacimiento: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
+      fechaNacimiento: fechaNacimientoParam || new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
       sexo: 'M',
       estado: 'Activo',
       razaId: '', // Changed to string to match AnimalFormData type
-      padreId: '',
-      madreId: '',
-      observaciones: '',
+      padreId: padreIdParam || '',
+      madreId: madreIdParam || '',
+      observaciones: reproduccionId ? `Animal nacido en evento de reproducción #${reproduccionId}` : '',
       activo: true,
+      reproduccionId: reproduccionId || '',
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -166,7 +179,8 @@ const AnimalFormPage: React.FC = () => {
             padreId: values.padreId ? parseInt(values.padreId, 10) : undefined,
             madreId: values.madreId ? parseInt(values.madreId, 10) : undefined,
             observaciones: values.observaciones,
-            activo: true // New animals are active by default
+            activo: true, // New animals are active by default
+            reproduccionId: values.reproduccionId ? parseInt(values.reproduccionId, 10) : undefined
           };
           await animalService.createAnimal(createData);
         }
@@ -187,6 +201,84 @@ const AnimalFormPage: React.FC = () => {
       }
     },
   });
+
+  // Efecto para cargar datos de reproducción cuando se proporciona un reproduccionId - sólo se ejecuta una vez al montar el componente
+  useEffect(() => {
+    // Si ya tenemos los valores de los parámetros de URL pre-cargados en el formulario,
+    // no necesitamos hacer la llamada API para obtener los mismos datos
+    if (madreIdParam && padreIdParam && fechaNacimientoParam) {
+      console.log('Los datos ya están pre-cargados desde los parámetros URL');
+      return;
+    }
+    
+    const fetchReproduccionData = async () => {
+      if (!reproduccionId) return;
+      
+      try {
+        setLoading(true);
+        console.log('Intentando cargar reproducción ID:', reproduccionId);
+        
+        // Asegurar que el ID es un número entero válido
+        const reproId = parseInt(reproduccionId, 10);
+        if (isNaN(reproId)) {
+          throw new Error(`ID de reproducción inválido: ${reproduccionId}`);
+        }
+        
+        // Utilizar try-catch anidado para capturar específicamente errores de la API
+        try {
+          const reproduccion = await reproduccionService.getReproduccionById(reproId);
+          console.log('Datos de reproducción cargados exitosamente:', reproduccion);
+          
+          if (!reproduccion) {
+            throw new Error('La API devolvió datos vacíos para la reproducción');
+          }
+          
+          setReproduccionData({
+            hembraId: reproduccion.hembraId,
+            machoId: reproduccion.machoId || undefined,
+            fechaPartoReal: reproduccion.fechaPartoReal || new Date().toISOString()
+          });
+          
+          // Si hay fecha de parto real, usarla para la fecha de nacimiento de la cría
+          if (reproduccion.fechaPartoReal) {
+            const fechaNacimiento = new Date(reproduccion.fechaPartoReal);
+            const formattedDate = fechaNacimiento.toISOString().split('T')[0];
+            formik.setFieldValue('fechaNacimiento', formattedDate, false); // Agregamos false para evitar validaciones y re-renders
+          }
+          
+          // Pre-llenar los campos de padre y madre
+          if (reproduccion.hembraId) {
+            formik.setFieldValue('madreId', reproduccion.hembraId.toString(), false);
+          }
+          
+          if (reproduccion.machoId) {
+            formik.setFieldValue('padreId', reproduccion.machoId.toString(), false);
+          }
+          
+          // Actualizar observaciones con información del evento
+          formik.setFieldValue('observaciones', `Animal nacido en evento de reproducción #${reproduccionId}`, false);
+          
+          // Incluir el ID de la reproducción para vincular la cría al evento
+          formik.setFieldValue('reproduccionId', reproduccionId, false);
+          
+          setError(''); // Limpiar errores previos si la carga es exitosa
+          
+        } catch (apiError: any) {
+          console.error('Error en la API al cargar datos de reproducción:', apiError);
+          throw new Error(`Error al cargar datos de reproducción: ${apiError.message || 'Error desconocido de la API'}`);
+        }
+        
+      } catch (err: any) {
+        console.error('Error al cargar datos de reproducción:', err);
+        setError(`No se pudo cargar la información de la reproducción: ${err.message || 'Error desconocido'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReproduccionData();
+    // Ejecutar este efecto solo una vez al cargar el componente, sin dependencias que provoquen re-renders
+  }, []);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -253,14 +345,14 @@ const AnimalFormPage: React.FC = () => {
             Animales
           </Link>
           <Typography color="text.primary">
-            {isEditMode ? 'Editar Animal' : 'Nuevo Animal'}
+            {isEditMode ? 'Editar Animal' : reproduccionId ? 'Registrar Cría' : 'Nuevo Animal'}
           </Typography>
         </Breadcrumbs>
       </Box>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
-          {isEditMode ? 'Editar Animal' : 'Nuevo Animal'}
+          {isEditMode ? 'Editar Animal' : reproduccionId ? 'Registrar Cría' : 'Nuevo Animal'}
         </Typography>
         <Button
           variant="outlined"

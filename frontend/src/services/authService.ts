@@ -37,16 +37,27 @@ export const authService = {
 
 
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify({
-        email: response.data.email,
-        displayName: response.data.displayName,
-        roles: response.data.roles
-      }));
+    try {
+      const response = await api.post<LoginResponse>('/auth/login', credentials);
+      
+      if (response.data && response.data.token) {
+        // Solo guardar en localStorage si la respuesta contiene un token válido
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify({
+          email: response.data.email,
+          displayName: response.data.displayName,
+          roles: response.data.roles
+        }));
+        return response.data;
+      } else {
+        // Si no hay token pero la respuesta es exitosa, lanzar un error
+        throw new Error('Respuesta de autenticación inválida');
+      }
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      // No recargar la página, simplemente propagar el error para que sea manejado por el componente
+      throw error;
     }
-    return response.data;
   },
 
   logout: (): void => {

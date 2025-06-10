@@ -70,7 +70,8 @@ namespace GanadoAPI.Controllers
                         Id = c.Id,
                         Fecha = c.Fecha,
                         TipoControl = c.TipoControl,
-                        Diagnostico = c.Descripcion,
+                        Diagnostico = c.Diagnostico,
+                        Descripcion = c.Descripcion,
                         Tratamiento = c.Medicamento,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
@@ -324,7 +325,8 @@ namespace GanadoAPI.Controllers
                         AnimalId = c.AnimalId,
                         Fecha = c.Fecha,
                         TipoControl = c.TipoControl,
-                        Diagnostico = c.Descripcion,
+                        Descripcion = c.Descripcion,
+                        Diagnostico = c.Diagnostico,
                         Tratamiento = c.Medicamento,
                         Costo = c.Dosis != null ? decimal.Parse(c.Dosis) : 0,
                         AnimalNombre = c.Animal.Nombre,
@@ -432,7 +434,8 @@ namespace GanadoAPI.Controllers
 
                 control.Fecha = controlDto.Fecha;
                 control.TipoControl = controlDto.TipoControl;
-                control.Descripcion = controlDto.Diagnostico;
+                control.Descripcion = controlDto.Descripcion;
+                control.Diagnostico = controlDto.Diagnostico;
                 control.Medicamento = controlDto.Tratamiento;
                 control.Dosis = controlDto.Costo.ToString();
                 control.ProximoControl = controlDto.ProximoControl;

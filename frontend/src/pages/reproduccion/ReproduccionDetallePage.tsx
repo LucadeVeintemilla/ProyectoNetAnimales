@@ -367,11 +367,7 @@ const ReproduccionDetallePage: React.FC = () => {
                   'Fecha Probable de Parto',
                   formatearFecha(evento.fechaPartoEstimada)
                 )}
-                {renderInfoItem(
-                  <EventAvailable color="info" />,
-                  'Fecha de Confirmación de Preñez',
-                  evento.fechaConfirmacionPrenez ? formatearFecha(evento.fechaConfirmacionPrenez) : 'No confirmada'
-                )}
+               
                 {renderInfoItem(
                   <ChildCare color="action" />,
                   'Fecha Real del Parto',
@@ -393,7 +389,7 @@ const ReproduccionDetallePage: React.FC = () => {
             variant="fullWidth"
           >
             <Tab label="Resumen" {...a11yProps(0)} />
-            <Tab label={`Crías (${crias.length})`} {...a11yProps(1)} disabled={!evento.fechaPartoReal} />
+            <Tab label={`Crías`} {...a11yProps(1)} disabled={!evento.fechaPartoReal} />
             <Tab label={`Historial (${historial.length})`} {...a11yProps(2)} />
           </Tabs>
           
@@ -449,111 +445,61 @@ const ReproduccionDetallePage: React.FC = () => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            {crias.length > 0 ? (
-              <>
-                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <ChildCare color="primary" sx={{ mr: 1 }} /> Crías Registradas
-                </Typography>
+            <Box textAlign="center" p={3}>
+              {evento.fechaPartoReal ? (
+                <>
                 
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>ID / Nombre</strong></TableCell>
-                        <TableCell><strong>Identificación</strong></TableCell>
-                        <TableCell><strong>Sexo</strong></TableCell>
-                        <TableCell><strong>Fecha Nacimiento</strong></TableCell>
-                        <TableCell><strong>Peso al Nacer</strong></TableCell>
-                        <TableCell><strong>Estado</strong></TableCell>
-                        <TableCell><strong>Acciones</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {crias.map((cria) => (
-                        <TableRow key={cria.id}>
-                          <TableCell>
-                            <Typography variant="body2" component="div">
-                              <Box fontWeight="fontWeightMedium">{cria.nombre || `Cría #${cria.id}`}</Box>
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{cria.numeroIdentificacion || 'No especificado'}</TableCell>
-                          <TableCell>
-                            {cria.sexo === 'H' ? (
-                              <Box display="flex" alignItems="center">
-                                <Female color="secondary" style={{ marginRight: 4 }} /> Hembra
-                              </Box>
-                            ) : (
-                              <Box display="flex" alignItems="center">
-                                <Male color="primary" style={{ marginRight: 4 }} /> Macho
-                              </Box>
-                            )}
-                          </TableCell>
-                          <TableCell>{cria.fechaNacimiento ? formatearFecha(cria.fechaNacimiento) : (evento.fechaPartoReal ? formatearFecha(evento.fechaPartoReal) : 'No especificado')}</TableCell>
-                          <TableCell>{cria.pesoNacimiento ? `${cria.pesoNacimiento} kg` : 'No especificado'}</TableCell>
-                          <TableCell>
-                            <Chip 
-                              size="small" 
-                              label={cria.estado === 'vivo' ? 'Vivo' : 'Fallecido'} 
-                              color={
-                                cria.estado === 'vivo' ? 'success' : 
-                                cria.estado === 'muerto' ? 'error' : 
-                                'default'
-                              } 
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              size="small" 
-                              variant="outlined"
-                              color="primary"
-                              onClick={() => navigate(`/animales/ver/${cria.id}`)}
-                            >
-                              Ver Detalle
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                
-                <Box display="flex" justifyContent="flex-end" mt={2}>
+                  
                   <Button 
                     variant="contained" 
                     color="primary"
-                    onClick={() => evento.id && navigate(`/animales/crear?reproduccionId=${evento.id}`)}
+                    size="large"
+                    onClick={() => {
+                      if (evento.id) {
+                        // Preparamos la URL con todos los datos relevantes para la cría
+                        const params = new URLSearchParams();
+                        params.append('reproduccionId', evento.id.toString());
+                        
+                        // Si tenemos datos de los padres, los agregamos
+                        if (evento.hembraId) {
+                          params.append('madreId', evento.hembraId.toString());
+                        }
+                        if (evento.machoId) {
+                          params.append('padreId', evento.machoId.toString());
+                        }
+                        
+                        // Si tenemos fecha de parto real, la usamos como fecha de nacimiento
+                        if (evento.fechaPartoReal) {
+                          params.append('fechaNacimiento', evento.fechaPartoReal);
+                        }
+                        
+                        // Navegamos con los parámetros
+                        navigate(`/animales/nuevo?${params.toString()}`);
+                      }
+                    }}
                     startIcon={<ChildCare />}
                   >
-                    Agregar Más Crías
+                    {crias.length > 0 ? 'Registrar Más Crías' : 'Registrar Crías'}
                   </Button>
-                </Box>
-              </>
-            ) : (
-              <Box textAlign="center" p={3}>
-                <Typography variant="body1" color="textSecondary" sx={{ mb: 2 }}>
-                  {evento.fechaPartoReal ? 'No hay crías registradas para este parto.' : 'El parto aún no ha sido registrado.'}
-                </Typography>
-                {evento.fechaPartoReal ? (
-                  <Button 
-                    variant="contained" 
-                    color="primary"
-                    onClick={() => evento.id && navigate(`/animales/crear?reproduccionId=${evento.id}`)}
-                    startIcon={<ChildCare />}
-                  >
-                    Registrar Crías
-                  </Button>
-                ) : evento.fechaPartoEstimada && (
-                  <Button 
-                    variant="outlined" 
-                    color="primary" 
-                    onClick={() => evento.id && navigate(`/reproduccion/registrar-parto/${evento.id}`)}
-                    startIcon={<EventAvailable />}
-                  >
-                    Registrar Parto
-                  </Button>
-                )}
-              </Box>
-            )}
+                </>
+              ) : (
+                <>
+                  
+                  
+                  {evento.fechaPartoEstimada && (
+                    <Button 
+                      variant="outlined" 
+                      color="primary"
+                      size="large" 
+                      onClick={() => evento.id && navigate(`/reproduccion/registrar-parto/${evento.id}`)}
+                      startIcon={<EventAvailable />}
+                    >
+                      Registrar Parto
+                    </Button>
+                  )}
+                </>
+              )}
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
@@ -641,7 +587,7 @@ const ReproduccionDetallePage: React.FC = () => {
                                 size="small" 
                                 variant="outlined"
                                 color="primary"
-                                onClick={() => navigate(`/reproduccion/ver/${evento.id}`)}
+                                onClick={() => navigate(`/reproduccion/${evento.id}`)}
                               >
                                 Ver Detalle
                               </Button>

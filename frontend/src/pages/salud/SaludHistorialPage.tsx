@@ -466,7 +466,7 @@ const SaludHistorialPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>{control.descripcion}</TableCell>
-                        <TableCell>{control.diagnostico || '-'}</TableCell>
+                        <TableCell>{control.diagnostico }</TableCell>
                         <TableCell>{getEstadoChip(control.estado)}</TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex' }}>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
   IconButton,
   CircularProgress,
   Alert,
+  Snackbar,
 } from '@mui/material';
 import { Visibility, VisibilityOff, LockOutlined, EmailOutlined } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -23,17 +24,21 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [showErrorSnackbar, setShowErrorSnackbar] = useState(false);
   
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
+    // Crucial para evitar el comportamiento predeterminado que recarga la página
     event.preventDefault();
     setError('');
     
-    // Basic validation
+    // Validación básica
     if (!email || !password) {
-      setError('Por favor ingrese su correo electrónico y contraseña');
+      const errorMsg = 'Por favor ingrese su correo electrónico y contraseña';
+      setError(errorMsg);
+      // Usar alert nativo de JavaScript para garantizar que se muestre sin problemas
+      window.alert(errorMsg);
       return;
     }
     
@@ -42,16 +47,31 @@ const LoginPage: React.FC = () => {
       const success = await login(email, password);
       
       if (!success) {
-        setError('Correo electrónico o contraseña incorrectos');
+        const errorMsg = 'Correo electrónico o contraseña incorrectos';
+        setError(errorMsg);
+        // Usar alert nativo en lugar del Snackbar para garantizar que se muestre
+        window.alert(errorMsg);
       }
-      // No need to navigate here, the AuthContext will handle the redirect
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.response?.data?.message || 'Error al intentar iniciar sesión. Por favor, intente nuevamente.';
+      let errorMessage = 'Error al intentar iniciar sesión. Por favor, intente nuevamente.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
+      // Usar alert nativo
+      window.alert(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseErrorSnackbar = () => {
+    setShowErrorSnackbar(false);
   };
 
   // If already logged in, show loading indicator while redirecting
@@ -90,11 +110,21 @@ const LoginPage: React.FC = () => {
               Iniciar Sesión
             </Typography>
             
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+            <Snackbar
+              open={showErrorSnackbar}
+              autoHideDuration={6000}
+              onClose={handleCloseErrorSnackbar}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert 
+                onClose={handleCloseErrorSnackbar} 
+                severity="error" 
+                variant="filled"
+                sx={{ width: '100%' }}
+              >
                 {error}
               </Alert>
-            )}
+            </Snackbar>
             
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField

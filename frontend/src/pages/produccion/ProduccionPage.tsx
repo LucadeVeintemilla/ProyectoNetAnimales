@@ -305,7 +305,6 @@ const ProduccionPage: React.FC = () => {
                   <TableCell>Animal</TableCell>
                   <TableCell>Cant. (Lts)</TableCell>
                   <TableCell>Turno</TableCell>
-                  <TableCell>Registrado</TableCell>
                   <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -348,7 +347,6 @@ const ProduccionPage: React.FC = () => {
                           color={getTurnoColor(produccion.turno as 'Mañana' | 'Tarde' | 'Noche')}
                         />
                       </TableCell>
-                      <TableCell>{formatDateTime(produccion.fechaCreacion || '')}</TableCell>
                       <TableCell align="right">
                         <IconButton
                           size="small"

@@ -116,8 +116,10 @@ export const saludService = {
         numeroIdentificacion: item.animal?.numeroIdentificacion || 'Sin ID',
         fecha: item.fecha,
         tipo: item.tipoControl?.toLowerCase() || 'otro', // Convertir TipoControl a tipo
-        descripcion: item.diagnostico || '', // Mapear Diagnostico a descripcion
-        diagnostico: item.tratamiento || '', // Mapear Tratamiento a diagnostico
+        
+        descripcion: item.descripcion || '', 
+        diagnostico: item.diagnostico || '', 
+
         estado: item.estado?.toLowerCase() || 'pendiente',
         fechaProximoControl: item.proximoControl,
         responsable: item.veterinario || '',
@@ -201,8 +203,8 @@ export const saludService = {
         numeroIdentificacion: response.data.animalIdentificacion || response.data.animal?.numeroIdentificacion || '',
         fecha: response.data.fecha,
         tipo: response.data.tipoControl?.toLowerCase() || 'otro',
-        descripcion: response.data.diagnostico || '',
-        diagnostico: response.data.tratamiento || '',
+        descripcion: response.data.descripcion || '',
+        diagnostico: response.data.diagnostico || '',
         estado: response.data.estado?.toLowerCase() || 'pendiente',
         fechaProximoControl: response.data.proximoControl,
         responsable: response.data.veterinario || '',
@@ -391,10 +393,35 @@ export const saludService = {
 
   // Obtener registros de salud de un animal específico
   getByAnimalId: async (animalId: number, page: number = 1, pageSize: number = 10): Promise<any> => {
-    const response = await api.get(`/ControlesSalud/animal/${animalId}`, {
-      params: { page, pageSize }
-    });
-    return response.data;
+    try {
+      const response = await api.get(`/ControlesSalud/animal/${animalId}`, {
+        params: { page, pageSize }
+      });
+      
+      console.log('Datos originales de controles por animal:', response.data);
+      
+      // Mapear los datos del backend al formato del frontend
+      const controlesMapeados = response.data.map((item: any) => ({
+        id: item.id,
+        animalId: item.animalId,
+        animalNombre: item.animalNombre || 'Sin nombre',
+        numeroIdentificacion: item.animalIdentificacion || '',
+        fecha: item.fecha,
+        tipo: item.tipoControl?.toLowerCase() || 'otro',
+        descripcion: item.descripcion || '',
+        diagnostico: item.diagnostico || '',
+        estado: item.estado?.toLowerCase() || 'pendiente',
+        fechaProximoControl: item.proximoControl,
+        responsable: item.veterinario || '',
+        observaciones: item.observaciones || ''
+      }));
+      
+      console.log('Datos mapeados de controles por animal:', controlesMapeados);
+      return controlesMapeados;
+    } catch (error) {
+      console.error('Error en getByAnimalId:', error);
+      throw error;
+    }
   },
 
   // Marcar un control de salud como completado

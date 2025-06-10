@@ -323,6 +323,8 @@ const AnimalDetallePage: React.FC = () => {
           <TabPanel value={tabValue} index={3}>
             <ArbolGenealogicoTab animalId={parseInt(id, 10)} />
           </TabPanel>
+
+         
         </CardContent>
       </Card>
     </Box>

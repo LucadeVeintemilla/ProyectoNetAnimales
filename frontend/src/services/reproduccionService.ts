@@ -62,8 +62,24 @@ export const reproduccionService = {
 
   // Obtener un evento de reproducción por ID
   getReproduccionById: async (id: number): Promise<Reproduccion> => {
-    const response = await api.get(`/Reproduccion/${id}`);
-    return response.data;
+    try {
+      console.log(`Solicitando datos de reproducción con ID: ${id} a la API`);
+      const response = await api.get(`/Reproduccion/${id}`);
+      console.log('Respuesta de la API para reproducción:', response);
+      
+      if (!response.data) {
+        throw new Error('La API no devolvió datos para la reproducción');
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error(`Error al obtener la reproducción ${id}:`, error);
+      if (error.response) {
+        console.error('Detalles de la respuesta de error:', error.response.status, error.response.data);
+        throw new Error(`Error ${error.response.status}: ${error.response.data.message || 'Error al cargar la reproducción'}`);
+      }
+      throw error;
+    }
   },
 
   // Crear un nuevo evento de reproducción

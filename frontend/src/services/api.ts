@@ -49,8 +49,16 @@ api.interceptors.response.use(
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login')) {
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
             // Use window.location.replace to prevent adding to browser history
             window.location.replace('/login');
+          }
+          break;
+        case 400:
+          // No hacer nada especial para errores 400 en la página de login
+          // Permitir que el componente maneje el error
+          if (window.location.pathname.includes('/login')) {
+            console.warn('Error de autenticación - credenciales incorrectas');
           }
           break;
         case 403:

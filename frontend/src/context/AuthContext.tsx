@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
-import api from '../services/api';
 
 interface User {
   id: number;
@@ -92,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password 
       });
       
-      if (response.token) {
+      if (response && response.token) {
         // Update the auth state
         setUser({
           id: 1, // This should come from your API response
@@ -101,9 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           roles: response.roles || []
         });
         
-        navigate('/dashboard');
-        
-        navigate('/dashboard');
+        // Solo navegar si la autenticación fue exitosa
+        setTimeout(() => navigate('/dashboard'), 100);
         return true;
       }
       

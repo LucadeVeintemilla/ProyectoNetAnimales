@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -10,7 +11,6 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Button,
   TextField,
   InputAdornment,
   IconButton,
@@ -19,13 +19,9 @@ import {
   Grid,
   Card,
   CardContent,
-  Divider,
   Chip,
-  Badge,
-  Alert,
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
   DateRange as DateRangeIcon,
@@ -37,7 +33,6 @@ import {
   Pending as PendingIcon,
   Edit as EditIcon,
   Visibility as VisibilityIcon,
-  Refresh as RefreshIcon,
   MedicalServices,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -55,6 +50,7 @@ interface SaludTabProps {
 
 const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
   // Estados para manejar los datos y filtros
+  const navigate = useNavigate();
   const [controles, setControles] = useState<ControlSalud[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +68,10 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
       setLoading(true);
       setError(null);
 
-      // Usar el servicio en lugar de axios directo
+      // Usar el servicio en lugar de axios directo - ahora el servicio ya maneja el mapeo
       let controlesData = await saludService.getByAnimalId(animalId);
+      
+      console.log('Datos recibidos del servicio:', controlesData);
       
       // Aplicar filtros adicionales en el cliente si es necesario
       if (filtroTipo !== 'todos') {
@@ -116,6 +114,18 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
       fetchControles();
     }
   }, [filtroTipo, filtroEstado, searchTerm]);
+
+  // Función para manejar la vista de detalles
+  const handleViewDetails = (controlId: number | undefined) => {
+    if (!controlId) return;
+    navigate(`/salud/${controlId}`);
+  };
+
+  // Función para manejar la edición del control
+  const handleEditControl = (controlId: number | undefined) => {
+    if (!controlId) return;
+    navigate(`/salud/${controlId}/editar`);
+  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -527,16 +537,16 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={control.diagnostico}>
+                        <Tooltip title={control.descripcion || ''}>
                           <Typography noWrap sx={{ maxWidth: 200 }}>
-                            {control.descripcion}
+                            {control.descripcion || 'Sin descripción'}
                           </Typography>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={control.diagnostico}>
+                        <Tooltip title={control.diagnostico || ''}>
                           <Typography noWrap sx={{ maxWidth: 200 }}>
-                            {control.diagnostico}
+                            {control.diagnostico || 'No especificado'}
                           </Typography>
                         </Tooltip>
                       </TableCell>
@@ -550,12 +560,12 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
                       </TableCell>
                       <TableCell align="right">
                         <Tooltip title="Ver detalles">
-                          <IconButton size="small" onClick={() => console.log('Ver control', control.id)}>
+                          <IconButton size="small" onClick={() => handleViewDetails(control.id)}>
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Editar">
-                          <IconButton size="small" onClick={() => console.log('Editar control', control.id)}>
+                          <IconButton size="small" onClick={() => handleEditControl(control.id)}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
