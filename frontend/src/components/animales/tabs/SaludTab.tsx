@@ -417,7 +417,7 @@ const SaludTab: React.FC<SaludTabProps> = ({ animalId }) => {
       <Box mb={3}>
         <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
           <PendingIcon color="warning" sx={{ mr: 1 }} />
-          Próximos Controles
+          Próximos Controles (90 días)
         </Typography>
         <Grid container spacing={2}>
           {controles

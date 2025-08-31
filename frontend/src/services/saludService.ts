@@ -320,34 +320,75 @@ export const saludService = {
       // Usar el nuevo endpoint que devuelve TODOS los controles
       const response = await api.get('/ControlesSalud/todos');
       
-      const controles = response.data || [];
-      console.log(`Total de controles para resumen: ${controles.length}`);
+      const controlesRaw = response.data || [];
+      console.log(`Total de controles para resumen: ${controlesRaw.length}`);
 
-      
+      // Normalizar campos del backend a un formato consistente
+      const controles = Array.isArray(controlesRaw) ? controlesRaw.map((c: any) => {
+        const fechaProximo = c.proximoControl || c.fechaProximoControl || c.FechaProximoControl || c.ProximoControl || null;
+        const estado = (c.estado || c.Estado || '').toLowerCase();
+        const tipo = (c.tipoControl || c.TipoControl || c.tipo || '').toLowerCase();
+        const fecha = c.fecha || c.Fecha || null;
+        const diagnostico = c.diagnostico || c.Diagnostico || '';
+        const descripcion = c.descripcion || c.Descripcion || diagnostico || '';
+        const animalIdVal = c.animalId || c.AnimalId;
+        const animalNombre = c.animalNombre || c.AnimalNombre || c.animal?.nombre || c.Animal?.Nombre || 'Sin nombre';
+        const animalIdentificacion = c.animalIdentificacion || c.AnimalIdentificacion || c.animal?.numeroIdentificacion || c.Animal?.NumeroIdentificacion || 'Sin ID';
+        return {
+          id: c.id || c.Id,
+          animalId: animalIdVal,
+          animalNombre,
+          animalIdentificacion,
+          fecha,
+          tipo,
+          descripcion,
+          estado,
+          fechaProximoControl: fechaProximo
+        };
+      }) : [];
+
+      console.log('[Dashboard] Controles normalizados:', {
+        total: controles.length,
+        muestra: controles.slice(0, 3)
+      });
+
       // Filtrar por animalId si se especifica
       let filteredControles = controles;
       if (animalId) {
         filteredControles = controles.filter((c: any) => c.animalId === animalId);
       }
+      console.log('[Dashboard] Controles tras filtro por animalId:', {
+        animalId: animalId ?? 'todos',
+        total: filteredControles.length
+      });
       
       const hoy = new Date();
+      // Normalizar a inicio del día para incluir controles programados "hoy"
+      hoy.setHours(0, 0, 0, 0);
       const totalControles = filteredControles.length;
       
       // Clasificar controles
       const completados = filteredControles.filter((c: any) => 
-        c.estado?.toLowerCase() === 'completado').length;
+        c.estado === 'completado').length;
       
       const pendientes = filteredControles.filter((c: any) => 
-        c.estado?.toLowerCase() === 'pendiente').length;
+        c.estado === 'pendiente').length;
       
       const atrasados = filteredControles.filter((c: any) => 
-        c.estado?.toLowerCase() === 'atrasado').length;
+        c.estado === 'atrasado').length;
+      console.log('[Dashboard] Totales por estado:', { totalControles, completados, pendientes, atrasados });
       
       // Obtener próximos controles (ordenados por fecha)
-      const proximosControles = filteredControles
+      const candidatosProximo = filteredControles.filter((c: any) => !!c.fechaProximoControl);
+      console.log('[Dashboard] Candidatos con fechaProximoControl:', {
+        total: candidatosProximo.length,
+        muestra: candidatosProximo.slice(0, 3)
+      });
+
+      const proximosControles = candidatosProximo
         .filter((c: any) => {
           const fechaControl = c.fechaProximoControl ? new Date(c.fechaProximoControl) : null;
-          return fechaControl && fechaControl >= hoy;
+          return fechaControl && !isNaN(fechaControl.getTime()) && fechaControl >= hoy;
         })
         .sort((a: any, b: any) => {
           const fechaA = new Date(a.fechaProximoControl);
@@ -365,11 +406,12 @@ export const saludService = {
             animalNombre: c.animalNombre || 'Sin nombre',
             numeroIdentificacion: c.animalIdentificacion || 'Sin ID',
             fecha: c.fechaProximoControl,
-            tipo: c.tipoControl,
-            descripcion: c.diagnostico || '',
+            tipo: c.tipo,
+            descripcion: c.descripcion || '',
             diasRestantes: diasRestantes
           };
         });
+      console.log('[Dashboard] Próximos controles calculados:', proximosControles);
       
       return {
         totalControles,

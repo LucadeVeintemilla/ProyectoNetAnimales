@@ -149,4 +149,3 @@ C:\Users\Luca\OneDrive\Desktop\ProyectoNet\backend\GanadoAPI\obj\Debug\net9.0\Ga
 C:\Users\Luca\OneDrive\Desktop\ProyectoNet\backend\GanadoAPI\obj\Debug\net9.0\GanadoAPI.genruntimeconfig.cache
 C:\Users\Luca\OneDrive\Desktop\ProyectoNet\backend\GanadoAPI\obj\Debug\net9.0\ref\GanadoAPI.dll
 C:\Users\Luca\OneDrive\Desktop\ProyectoNet\backend\GanadoAPI\obj\Debug\net9.0\GanadoAPI.sourcelink.json
-C:\Users\Luca\OneDrive\Desktop\ProyectoNet\backend\GanadoAPI\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

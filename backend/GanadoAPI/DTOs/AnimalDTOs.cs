@@ -10,6 +10,9 @@ namespace GanadoAPI.DTOs
         public DateTime FechaNacimiento { get; set; }
         public string Sexo { get; set; } = null!; // M: Macho, H: Hembra
         public string Estado { get; set; } = null!;
+        public string? Categoria { get; set; }
+        public string? TipoAdquisicion { get; set; }
+        public string? Ubicacion { get; set; }
         public int? RazaId { get; set; }
         public string? RazaNombre { get; set; }
         public int? PadreId { get; set; }
@@ -37,6 +40,9 @@ namespace GanadoAPI.DTOs
         public int? PadreId { get; set; }
         public int? MadreId { get; set; }
         public string? Observaciones { get; set; }
+        public int? ReproduccionId { get; set; }
+        public string? TipoAdquisicion { get; set; }
+        public string? Ubicacion { get; set; }
     }
 
     public class AnimalDetalleDTO
@@ -47,6 +53,9 @@ namespace GanadoAPI.DTOs
         public DateTime FechaNacimiento { get; set; }
         public string Sexo { get; set; } = null!;
         public string Estado { get; set; } = null!;
+        public string? Categoria { get; set; }
+        public string? TipoAdquisicion { get; set; }
+        public string? Ubicacion { get; set; }
         public string Raza { get; set; } = null!;
         public int? PadreId { get; set; }
         public int? MadreId { get; set; }
@@ -74,5 +83,8 @@ namespace GanadoAPI.DTOs
         public int? MadreId { get; set; }
         public string? Observaciones { get; set; }
         public bool Activo { get; set; }
+        public string? TipoAdquisicion { get; set; }
+        public string? Ubicacion { get; set; }
     }
-} 
+}
+ 

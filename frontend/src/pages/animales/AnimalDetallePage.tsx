@@ -255,8 +255,25 @@ const AnimalDetallePage: React.FC = () => {
                       <Typography variant="subtitle2" color="text.secondary">Raza:</Typography>
                       <Typography variant="body1">{animal.razaNombre || 'No especificada'}</Typography>
                     </Grid>
+                    
+                    {animal.categoria && (
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">Categoría:</Typography>
+                        <Chip label={animal.categoria} color="info" size="small" />
+                      </Grid>
+                    )}
+                    {/* tipo de adquision */}
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Fecha de Nacimiento:</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">Tipo de Adquisición:</Typography>
+                      <Typography variant="body1">{animal.tipoAdquisicion}</Typography>
+                    </Grid>
+                    {/* ubicacion */}
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Ubicación:</Typography>
+                      <Typography variant="body1">{animal.ubicacion}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Fecha de Nacimientoss:</Typography>
                       <Typography variant="body1">
                         {format(new Date(animal.fechaNacimiento), 'PP', { locale: es })}
                       </Typography>

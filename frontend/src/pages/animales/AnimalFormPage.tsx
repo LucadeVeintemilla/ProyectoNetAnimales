@@ -54,6 +54,8 @@ interface AnimalFormData {
   observaciones?: string;
   activo: boolean;
   reproduccionId?: string; // Para vincular el animal con el evento de reproducción
+  tipoAdquisicion?: 'Nacimiento propio' | 'Compra';
+  ubicacion?: string;
 }
 
 const AnimalFormPage: React.FC = () => {
@@ -128,6 +130,10 @@ const AnimalFormPage: React.FC = () => {
     madreId: Yup.string(),
     observaciones: Yup.string(),
     activo: Yup.boolean().default(true),
+    tipoAdquisicion: Yup.mixed<'Nacimiento propio' | 'Compra'>()
+      .oneOf(['Nacimiento propio', 'Compra'] as const, 'Seleccione un tipo válido')
+      .required('El tipo de adquisición es requerido'),
+    ubicacion: Yup.string().max(200, 'Máximo 200 caracteres'),
   });
 
   // Inicializar formulario con Formik
@@ -144,6 +150,8 @@ const AnimalFormPage: React.FC = () => {
       observaciones: reproduccionId ? `Animal nacido en evento de reproducción #${reproduccionId}` : '',
       activo: true,
       reproduccionId: reproduccionId || '',
+      tipoAdquisicion: reproduccionId ? 'Nacimiento propio' : undefined,
+      ubicacion: '',
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -164,7 +172,9 @@ const AnimalFormPage: React.FC = () => {
             padreId: values.padreId ? parseInt(values.padreId, 10) : null,
             madreId: values.madreId ? parseInt(values.madreId, 10) : null,
             observaciones: values.observaciones,
-            activo: values.activo
+            activo: values.activo,
+            tipoAdquisicion: values.tipoAdquisicion,
+            ubicacion: values.ubicacion
           };
           await animalService.updateAnimal(updateData.id, updateData);
         } else {
@@ -180,7 +190,9 @@ const AnimalFormPage: React.FC = () => {
             madreId: values.madreId ? parseInt(values.madreId, 10) : undefined,
             observaciones: values.observaciones,
             activo: true, // New animals are active by default
-            reproduccionId: values.reproduccionId ? parseInt(values.reproduccionId, 10) : undefined
+            reproduccionId: values.reproduccionId ? parseInt(values.reproduccionId, 10) : undefined,
+            tipoAdquisicion: values.tipoAdquisicion,
+            ubicacion: values.ubicacion
           };
           await animalService.createAnimal(createData);
         }
@@ -311,6 +323,8 @@ const AnimalFormPage: React.FC = () => {
             madreId: animal.madreId?.toString() || '',
             observaciones: animal.observaciones || '',
             activo: animal.activo,
+            tipoAdquisicion: (animal.tipoAdquisicion as any) || undefined,
+            ubicacion: animal.ubicacion || '',
           });
         }
       } catch (err) {
@@ -409,6 +423,44 @@ const AnimalFormPage: React.FC = () => {
                 />
               </Grid>
               
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={formik.touched.tipoAdquisicion && Boolean(formik.errors.tipoAdquisicion)}>
+                  <InputLabel id="tipoAdquisicion-label">Tipo de Adquisición</InputLabel>
+                  <Select
+                    labelId="tipoAdquisicion-label"
+                    id="tipoAdquisicion"
+                    name="tipoAdquisicion"
+                    value={formik.values.tipoAdquisicion || ''}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    label="Tipo de Adquisición"
+                    disabled={saving}
+                  >
+                    <MenuItem value=""><em>Seleccione...</em></MenuItem>
+                    <MenuItem value="Nacimiento propio">Nacimiento propio</MenuItem>
+                    <MenuItem value="Compra">Compra</MenuItem>
+                  </Select>
+                  {formik.touched.tipoAdquisicion && formik.errors.tipoAdquisicion && (
+                    <FormHelperText>{formik.errors.tipoAdquisicion}</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  id="ubicacion"
+                  name="ubicacion"
+                  label="Ubicación"
+                  value={formik.values.ubicacion}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.ubicacion && Boolean(formik.errors.ubicacion)}
+                  helperText={formik.touched.ubicacion && formik.errors.ubicacion}
+                  disabled={saving}
+                />
+              </Grid>
+
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth error={formik.touched.estado && Boolean(formik.errors.estado)}>
                   <InputLabel id="estado-label">Estado</InputLabel>

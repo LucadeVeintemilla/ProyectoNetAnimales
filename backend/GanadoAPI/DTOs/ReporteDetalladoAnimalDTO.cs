@@ -15,6 +15,9 @@ namespace GanadoAPI.DTOs
         public string Estado { get; set; }
         public string RazaNombre { get; set; }
         public string Observaciones { get; set; }
+        public string? Categoria { get; set; }
+        public string? TipoAdquisicion { get; set; }
+        public string? Ubicacion { get; set; }
         
         // Información genealógica
         public AnimalSimpleDTO Padre { get; set; }

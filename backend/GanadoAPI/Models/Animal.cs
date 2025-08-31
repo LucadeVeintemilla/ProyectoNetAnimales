@@ -27,6 +27,15 @@ namespace GanadoAPI.Models
         [StringLength(50)]
         public string? Estado { get; set; } // Estado del animal (Activo, Vendido, Muerto, etc.)
         
+        [StringLength(50)]
+        public string? Categoria { get; set; } // Clasificación automática
+        
+        [StringLength(50)]
+        public string? TipoAdquisicion { get; set; } // Nacimiento propio | Compra
+        
+        [StringLength(200)]
+        public string? Ubicacion { get; set; } // Libre digitación
+        
         public int? RazaId { get; set; }
         [ForeignKey("RazaId")]
         public virtual Raza? Raza { get; set; }
@@ -71,3 +80,4 @@ namespace GanadoAPI.Models
         public virtual Reproduccion? ReproduccionDeNacimiento { get; set; }
     }
 }
+

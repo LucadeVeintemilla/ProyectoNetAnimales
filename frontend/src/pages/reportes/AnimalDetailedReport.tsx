@@ -72,11 +72,10 @@ const AnimalDetailedReport: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   
   useEffect(() => {
-    // Get list of animals for the dropdown
     const fetchAnimales = async () => {
       try {
         setLoading(true);
-        const response = await animalesService.getAnimales();
+        const response = await animalesService.getAnimales(1, 1000, '', 'todos');
         const animalList = response.items.map((animal: any) => ({
           id: animal.id,
           numeroIdentificacion: animal.numeroIdentificacion,
@@ -318,6 +317,9 @@ const AnimalDetailedReport: React.FC = () => {
                   <Typography><strong>Edad:</strong> {report.edadMeses} meses</Typography>
                   <Typography><strong>Sexo:</strong> {report.sexo}</Typography>
                   <Typography><strong>Raza:</strong> {report.razaNombre}</Typography>
+                  <Typography><strong>Categoría:</strong> {report.categoria}</Typography>
+                  <Typography><strong>Tipo de Adquisición:</strong> {report.tipoAdquisicion ?? '-'}</Typography>
+                  <Typography><strong>Ubicación:</strong> {report.ubicacion ?? '-'}</Typography>
                   <Typography><strong>Estado:</strong> {report.estado}</Typography>
                 </CardContent>
               </Card>

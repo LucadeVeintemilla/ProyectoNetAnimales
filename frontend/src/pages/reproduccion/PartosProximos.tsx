@@ -139,6 +139,7 @@ export const PartosProximos: React.FC = () => {
         </Typography>
         <Box display="flex" alignItems="center" gap={2}>
           <TextField
+            id="dias-anticipacion-select"
             select
             size="small"
             label="Mostrar partos en los próximos"
@@ -147,6 +148,10 @@ export const PartosProximos: React.FC = () => {
             sx={{ minWidth: 200 }}
             SelectProps={{
               native: true,
+            }}
+            inputProps={{
+              'aria-label': 'Mostrar partos en los próximos días',
+              name: 'dias-anticipacion',
             }}
           >
             <option value={7}>7 días</option>

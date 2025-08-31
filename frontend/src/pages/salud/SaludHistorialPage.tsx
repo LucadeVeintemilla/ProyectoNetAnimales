@@ -385,7 +385,7 @@ const SaludHistorialPage: React.FC = () => {
       {resumen.proximosControles && resumen.proximosControles.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Próximos Controles
+            Próximos Controles 90 días
           </Typography>
           <Paper>
             {resumen.proximosControles.map((control, index) => (

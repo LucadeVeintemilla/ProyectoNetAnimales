@@ -103,6 +103,9 @@ namespace GanadoAPI.Controllers
                         FechaNacimiento = a.FechaNacimiento,
                         Sexo = a.Sexo,
                         Estado = a.Estado,
+                        Categoria = a.Categoria,
+                        TipoAdquisicion = a.TipoAdquisicion,
+                        Ubicacion = a.Ubicacion,
                         RazaId = a.RazaId,
                         RazaNombre = a.Raza != null ? a.Raza.Nombre : "Sin especificar",
                         Activo = a.Activo // Asegurémonos de incluir esto
@@ -145,6 +148,9 @@ namespace GanadoAPI.Controllers
                         FechaNacimiento = a.FechaNacimiento,
                         Sexo = a.Sexo,
                         Estado = a.Estado,
+                        Categoria = a.Categoria,
+                        TipoAdquisicion = a.TipoAdquisicion,
+                        Ubicacion = a.Ubicacion,
                         RazaId = a.RazaId,
                         RazaNombre = a.Raza != null ? a.Raza.Nombre : "Sin especificar",
                         PadreId = a.PadreId,
@@ -188,14 +194,22 @@ namespace GanadoAPI.Controllers
                     FechaNacimiento = animalDto.FechaNacimiento,
                     Sexo = animalDto.Sexo,
                     Estado = animalDto.Estado,
+                    TipoAdquisicion = animalDto.TipoAdquisicion,
+                    Ubicacion = animalDto.Ubicacion,
                     RazaId = animalDto.RazaId,
                     PadreId = animalDto.PadreId,
                     MadreId = animalDto.MadreId,
                     Observaciones = animalDto.Observaciones,
-                    Activo = true
+                    Activo = true,
+                    ReproduccionId = animalDto.ReproduccionId
                 };
 
                 _context.Animales.Add(animal);
+                await _context.SaveChangesAsync();
+
+                // Calcular categoría automática
+                animal.Categoria = await CalcularCategoriaAsync(animal);
+                _context.Entry(animal).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
                 var animalCreado = new AnimalDTO
@@ -206,6 +220,9 @@ namespace GanadoAPI.Controllers
                     FechaNacimiento = animal.FechaNacimiento,
                     Sexo = animal.Sexo,
                     Estado = animal.Estado,
+                    Categoria = animal.Categoria,
+                    TipoAdquisicion = animal.TipoAdquisicion,
+                    Ubicacion = animal.Ubicacion,
                     RazaId = animal.RazaId,
                     RazaNombre = (await _context.Razas.FindAsync(animal.RazaId))?.Nombre ?? string.Empty,
                     PadreId = animal.PadreId,
@@ -248,6 +265,8 @@ namespace GanadoAPI.Controllers
                 animal.FechaNacimiento = animalDto.FechaNacimiento;
                 animal.Sexo = animalDto.Sexo;
                 animal.Estado = animalDto.Estado;
+                animal.TipoAdquisicion = animalDto.TipoAdquisicion;
+                animal.Ubicacion = animalDto.Ubicacion;
                 animal.RazaId = animalDto.RazaId;
                 animal.PadreId = animalDto.PadreId;
                 animal.MadreId = animalDto.MadreId;
@@ -255,6 +274,11 @@ namespace GanadoAPI.Controllers
                 // No actualizamos el campo Activo aquí para evitar que se cambie al editar
                 // El estado activo solo debe cambiarse mediante el endpoint específico para activar/desactivar
 
+                _context.Entry(animal).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                // Recalcular categoría si cambian datos clave
+                animal.Categoria = await CalcularCategoriaAsync(animal);
                 _context.Entry(animal).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
@@ -267,6 +291,9 @@ namespace GanadoAPI.Controllers
                     FechaNacimiento = animal.FechaNacimiento,
                     Sexo = animal.Sexo,
                     Estado = animal.Estado,
+                    Categoria = animal.Categoria,
+                    TipoAdquisicion = animal.TipoAdquisicion,
+                    Ubicacion = animal.Ubicacion,
                     RazaId = animal.RazaId,
                     RazaNombre = (await _context.Razas.FindAsync(animal.RazaId))?.Nombre,
                     PadreId = animal.PadreId,
@@ -281,6 +308,100 @@ namespace GanadoAPI.Controllers
             {
                 _logger.LogError(ex, $"Error al actualizar el animal con ID {id}");
                 return StatusCode(500, new { message = "Error interno del servidor al actualizar el animal" });
+            }
+        }
+
+        private async Task<string> CalcularCategoriaAsync(Animal animal)
+        {
+            try
+            {
+                var hoy = DateTime.UtcNow.Date;
+                var dias = (hoy - animal.FechaNacimiento.Date).TotalDays;
+                var sexo = (animal.Sexo ?? "").ToUpperInvariant();
+
+                // Toro
+                if (sexo == "M" && dias > 1080) return "Toro";
+
+                // Datos de reproducción (solo hembras)
+                DateTime hace8Meses = hoy.AddMonths(-8);
+                bool estaPrenada = false;
+                bool tuvoPartoReciente = false;
+                bool tieneCriaRegistrada = false;
+                bool paridaPrenada = false;
+
+                if (sexo == "H")
+                {
+                    var reproducciones = await _context.Reproducciones
+                        .Where(r => r.HembraId == animal.Id)
+                        .OrderByDescending(r => r.FechaRealParto)
+                        .ToListAsync();
+
+                    // Confirmación de preñez (palpación efectiva)
+                    estaPrenada = await _context.Reproducciones
+                        .AnyAsync(r => r.HembraId == animal.Id && r.FechaConfirmacionPrenez != null && (r.Resultado == null || r.Resultado == "Preñada"));
+
+                    var ultimoParto = reproducciones.FirstOrDefault(r => r.FechaRealParto != null);
+                    if (ultimoParto?.FechaRealParto != null)
+                    {
+                        tuvoPartoReciente = ultimoParto.FechaRealParto.Value.Date >= hace8Meses;
+                        if (tuvoPartoReciente)
+                        {
+                            // Verificar cría registrada para ese evento
+                            tieneCriaRegistrada = await _context.Animales.AnyAsync(a => a.ReproduccionId == ultimoParto.Id);
+
+                            // Parida preñada: hay confirmación de preñez luego del parto dentro de 8 meses
+                            if (estaPrenada)
+                            {
+                                var confirmacionPostParto = await _context.Reproducciones.AnyAsync(r => r.HembraId == animal.Id && r.FechaConfirmacionPrenez != null && r.FechaConfirmacionPrenez >= ultimoParto.FechaRealParto);
+                                paridaPrenada = confirmacionPostParto;
+                            }
+                        }
+                    }
+                }
+
+                // Reglas por prioridad
+                if (sexo == "H" && tuvoPartoReciente && tieneCriaRegistrada)
+                {
+                    if (paridaPrenada) return "Parida preñada";
+                    return "Parida vacía";
+                }
+
+                if (sexo == "H" && estaPrenada)
+                {
+                    return "Preñada";
+                }
+
+                if (dias <= 240) return "Becerro";
+
+                if (dias > 240 && dias <= 365)
+                {
+                    if (sexo == "H") return "Novillas destete";
+                    if (sexo == "M") return "Novillos destete";
+                }
+
+                if (dias > 365 && dias <= 600)
+                {
+                    if (sexo == "H") return "Novillas levante";
+                    if (sexo == "M") return "Novillos levante";
+                }
+
+                if (dias > 600 && dias <= 1080)
+                {
+                    if (sexo == "H") return "Novillas vientre";
+                    if (sexo == "M") return "Novillos ceba";
+                }
+
+                if (sexo == "H" && dias > 1080)
+                {
+                    return "Vacía"; // >1080 días y no marcada preñada arriba
+                }
+
+                return animal.Categoria ?? "";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calculando categoría para animal {animal.Id}");
+                return animal.Categoria ?? string.Empty;
             }
         }
 

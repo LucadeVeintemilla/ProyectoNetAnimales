@@ -285,7 +285,7 @@ const SaludDetallesPage: React.FC = () => {
                   {controlSalud.fechaProximoControl && (
                     <ListItem>
                       <ListItemText 
-                        primary="Próximo control" 
+                        primary="Próximo control (90 días)" 
                         secondary={format(new Date(controlSalud.fechaProximoControl), "dd/MM/yyyy")}
                       />
                     </ListItem>

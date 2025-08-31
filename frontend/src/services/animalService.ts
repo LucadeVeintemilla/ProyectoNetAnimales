@@ -7,6 +7,9 @@ export interface Animal {
   fechaNacimiento: string;
   sexo: 'M' | 'H';
   estado: string;
+  categoria?: string;
+  tipoAdquisicion?: 'Nacimiento propio' | 'Compra';
+  ubicacion?: string;
   razaId: number;
   razaNombre?: string;
   padreId?: number;
@@ -34,6 +37,8 @@ export interface AnimalUpdateDto {
   madreId?: number | null;
   observaciones?: string;
   activo: boolean;
+  tipoAdquisicion?: 'Nacimiento propio' | 'Compra';
+  ubicacion?: string;
 }
 
 export interface Cria {

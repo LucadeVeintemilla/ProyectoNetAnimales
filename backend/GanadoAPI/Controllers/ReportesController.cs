@@ -544,6 +544,11 @@ namespace GanadoAPI.Controllers
                     Sexo = animal.Sexo,
                     RazaNombre = animal.Raza?.Nombre ?? "Sin especificar",
                     Estado = animal.Estado,
+                    Categoria = animal.Categoria,
+                    TipoAdquisicion = !string.IsNullOrWhiteSpace(animal.TipoAdquisicion)
+                        ? animal.TipoAdquisicion
+                        : (animal.ReproduccionId.HasValue ? "Nacimiento propio" : null),
+                    Ubicacion = animal.Ubicacion,
                     EstadoActual = estadoActual,
                     EnLactancia = enLactancia,
                     EnGestacion = enGestacion,

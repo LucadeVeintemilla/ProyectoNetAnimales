@@ -91,6 +91,9 @@ export interface ReporteDetalladoAnimal {
   estado: string;
   razaNombre: string;
   observaciones: string;
+  categoria?: string;
+  tipoAdquisicion?: 'Nacimiento propio' | 'Compra';
+  ubicacion?: string;
   
   // Genealogía
   padre: AnimalSimple | null;

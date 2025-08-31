@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -39,6 +40,7 @@ import { animalService } from '../../services/animalService';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const SaludDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [resumen, setResumen] = useState<ResumenSalud>({
@@ -61,29 +63,41 @@ const SaludDashboardPage: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Cargar animales para filtro
-        const animalData = await animalService.getAnimales();
+        // Cargar animales para filtro (todos los estados y un pageSize alto)
+        const animalData = await animalService.getAnimales(1, 1000, '', 'todos');
         setAnimales(animalData); // animalData ya tiene la estructura {items, totalCount}
         
         // Cargar resumen de salud
         const resumenData = await saludService.getResumenSalud(
           typeof animalId === 'number' ? animalId : undefined
         );
-        setResumen(resumenData);
+        console.debug('[Dashboard] Resumen recibido:', resumenData);
+
+        // Cargar próximos controles desde endpoint dedicado (prioritario frente al cálculo local)
+        const proximos = await saludService.getProximosControles(
+          90,
+          typeof animalId === 'number' ? animalId : undefined
+        );
+        console.debug('[Dashboard] Próximos controles (endpoint dedicado):', proximos);
+
+        setResumen({
+          ...resumenData,
+          proximosControles: proximos && proximos.length > 0 ? proximos : resumenData.proximosControles
+        });
         
         // Cargar datos de controles por mes y tipo
         const tiposData = await saludService.getControlesPorMes(
           typeof animalId === 'number' ? animalId : undefined,
           año
         );
-        console.log('Datos de controles por mes recibidos:', tiposData);
+        console.debug('[Dashboard] Controles por mes recibidos:', tiposData);
         setTiposPorMes(tiposData);
         
         // Cargar datos de estados por tipo
         const estadosData = await saludService.getEstadosPorTipo(
           typeof animalId === 'number' ? animalId : undefined
         );
-        console.log('Datos de estados por tipo recibidos:', estadosData);
+        console.debug('[Dashboard] Estados por tipo recibidos:', estadosData);
         setEstadosPorTipo(estadosData);
         
       } catch (error) {
@@ -335,45 +349,59 @@ const SaludDashboardPage: React.FC = () => {
           <Paper sx={{ p: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="h6">Próximos Controles</Typography>
+              <Typography variant="h6">Próximos Controles (90 días)</Typography>
             </Box>
             
             <List sx={{ width: '100%' }}>
               {resumen.proximosControles && resumen.proximosControles.length > 0 ? (
                 resumen.proximosControles.map((control) => (
                   <React.Fragment key={control.id}>
-                    <ListItem alignItems="flex-start">
-                      <ListItemIcon>
-                        {control.tipo === 'vacuna' ? (
-                          <VaccineIcon color="primary" />
-                        ) : control.tipo === 'tratamiento' ? (
-                          <HospitalIcon color="secondary" />
-                        ) : (
-                          <PetsIcon color="action" />
-                        )}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="body1">{control.descripcion}</Typography>
-                            <Chip 
-                              label={`${control.diasRestantes} días`}
-                              color="primary"
-                              size="small"
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <>
-                            <Typography variant="body2" component="span">
-                              {format(new Date(control.fecha), "dd/MM/yyyy")}
-                            </Typography>
-                            <Typography variant="body2" component="span" sx={{ ml: 1 }}>
-                              Animal: {control.numeroIdentificacion}
-                            </Typography>
-                          </>
-                        }
-                      />
+                    <ListItem alignItems="flex-start" disablePadding>
+                      <Box sx={{ width: '100%' }}>
+                        <Box
+                          onClick={() => navigate(`/salud/${control.id}`)}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            px: 2,
+                            py: 1.5,
+                            cursor: 'pointer',
+                            '&:hover': { backgroundColor: 'action.hover' }
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 36, mt: 0.3 }}>
+                            {control.tipo === 'vacuna' ? (
+                              <VaccineIcon color="primary" />
+                            ) : control.tipo === 'tratamiento' ? (
+                              <HospitalIcon color="secondary" />
+                            ) : (
+                              <PetsIcon color="action" />
+                            )}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body1">{control.descripcion || 'Control programado'}</Typography>
+                                <Chip 
+                                  label={`${control.diasRestantes} días`}
+                                  color="primary"
+                                  size="small"
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <>
+                                <Typography variant="body2" component="span">
+                                  {format(new Date(control.fecha), "dd/MM/yyyy")}
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{ ml: 1 }}>
+                                  Animal: {control.numeroIdentificacion}
+                                </Typography>
+                              </>
+                            }
+                          />
+                        </Box>
+                      </Box>
                     </ListItem>
                     <Divider variant="inset" component="li" />
                   </React.Fragment>
